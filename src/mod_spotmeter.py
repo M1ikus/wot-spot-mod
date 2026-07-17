@@ -61,6 +61,21 @@ def _t(key):
             or key)
 
 
+def _msa_tip(base_key):
+    """Tooltip for a settings control whose base i18n key is `base_key`, read
+    from `base_key + '_tip'`. Returns None when no tooltip is defined, so the
+    menu builders can pass tooltip=_msa_tip(...) unconditionally (MSA omits the
+    field on None). Kept separate from _t() on purpose: tooltips are optional,
+    so a missing one must degrade to None, not to the raw key string."""
+    global _LANG
+    if _LANG is None:
+        _LANG = _detect_lang()
+    tkey = base_key + '_tip'
+    return (_STRINGS.get(_LANG, _STRINGS['en']).get(tkey)
+            or _STRINGS['en'].get(tkey)
+            or None)
+
+
 _STRINGS = {
     'en': {
         'msa_battle_panel': 'Battle panel visible at start',
@@ -101,6 +116,28 @@ _STRINGS = {
         'msa_hk_dump': 'Dump enemy data to log',
         'msa_hk_snapshot': 'Spot-distance snapshot to log',
         'msa_hk_reload': 'Reload config file',
+        # --- tooltips (v7.1) - hover hints on the settings controls ---
+        'msa_battle_panel_tip': 'Show the picker panel automatically when a battle starts. Off = hidden; PageDown still summons it in battle.',
+        'msa_group_tanks_tip': 'Collapse identical enemy tanks into one row and one Numpad 2/8 stop (same model = same view range = same circle). Off = list each enemy.',
+        'msa_autohide_tip': 'Hide the panel while you hold a scoreboard key (TAB / N) so it does not cover the team stats; it returns on release.',
+        'msa_defaults_label_tip': 'The server hides enemy crew perks and equipment, so SpotMeter assumes this loadout when sizing the circle. Set it to how you expect typical enemies to be equipped.',
+        'msa_def_rations_tip': 'Assume the enemy runs combat rations (+4.30% to their view range). On by default - most players use them.',
+        'msa_def_BIA_tip': 'Assume the enemy crew has Brothers in Arms (+2.53% view range). On by default.',
+        'msa_def_reconSitAware_tip': 'Assume the enemy has Recon + Situational Awareness (+7.39% view range combined). On by default.',
+        'msa_def_directives_tip': 'Assume a view-range directive on the enemy equipment (x1.025 on auto-detected gear). Off by default - less common.',
+        'msa_def_fieldUpgrades_tip': 'Assume a view-range field upgrade (per-tank table in spotmeter.json). BETA, off by default - the server does not send it, so it is an estimate.',
+        'msa_def_optics_tip': 'Assumed enemy optics - more optics = more enemy view range. OFF / basic +10% / in-slot +11.5% / bonds +12.5% / deluxe +13.5%.',
+        'msa_def_vents_tip': 'Assumed enemy ventilation - it amplifies the crew bonuses above (rations / BIA / recon). OFF / +5% / +6.25% / +7.5% / +8.5%.',
+        'msa_def_cvs_tip': 'Assumed enemy CVS (Commander Vision System) - lowers YOUR moving camo, so you are spotted from further while moving. OFF / basic -10% / in-slot -12.5%.',
+        'msa_def_autopick_tip': 'Automatically target the nearest enemy and size the circle to their view range, updating as they move. A manual pick (Numpad 2/8) overrides it; applies the per-class presets below.',
+        'msa_preset_class_tip': 'Choose which vehicle class you are editing the auto-pick preset for. Each class can assume a different enemy loadout.',
+        'msa_preset_edit_tip': 'The enemy loadout auto-pick assumes when the nearest enemy is this class.',
+        'msa_preset_lt_tip': 'The enemy loadout auto-pick assumes when the nearest enemy is a light tank.',
+        'msa_preset_df_tip': 'The enemy loadout auto-pick assumes for all non-light classes.',
+        'msa_circle_tip': 'Draw SpotMeter\'s spot-distance circle on the minimap (how far you can currently be seen). Off = hide it. Note: with XVM\'s minimap, XVM controls the circle colour.',
+        'msa_alpha_tip': 'Opacity of the minimap circle, 10-100%. Lower = more see-through.',
+        'msa_language_tip': 'UI language for the panel and this menu. Auto = follow the game client (Polish -> PL, everything else -> EN).',
+        'msa_hotkey_tip': 'Show or hide the in-battle picker panel. Default PageDown - the only way to summon it when the panel starts hidden.',
         'tl_rations': 'rations', 'tl_BIA': 'BIA', 'tl_reconSitAware': 'recon+SitA',
         'tl_directives': 'directives', 'tl_fieldUpgrades': 'field upg.',
         'tl_optics': 'optics', 'tl_vents': 'vents', 'tl_cvs': 'CVS', 'tl_auto': 'auto',
@@ -149,6 +186,28 @@ _STRINGS = {
         'msa_hk_dump': 'Zrzut danych wroga do logu',
         'msa_hk_snapshot': 'Zrzut dystansu do logu',
         'msa_hk_reload': 'Przeladuj plik configu',
+        # --- podpowiedzi (v7.1) - dymki nad kontrolkami ustawien ---
+        'msa_battle_panel_tip': 'Pokazuj panel wyboru celu automatycznie na starcie bitwy. Wyl = ukryty; PageDown i tak przywola go w bitwie.',
+        'msa_group_tanks_tip': 'Lacz identyczne czolgi wroga w jeden wiersz i jeden przystanek Numpad 2/8 (ten sam model = ten sam zasieg widzenia = ten sam okrag). Wyl = kazdy wrog osobno.',
+        'msa_autohide_tip': 'Chowaj panel na czas trzymania klawisza tabeli wynikow (TAB / N), zeby nie zaslanial statystyk; wraca po puszczeniu.',
+        'msa_defaults_label_tip': 'Serwer ukrywa umiejetnosci zalogi i sprzet wroga, wiec SpotMeter zaklada ten loadout przy liczeniu okregu. Ustaw wg tego, jak zwykle wyposazeni sa przeciwnicy.',
+        'msa_def_rations_tip': 'Zakladaj, ze wrog ma racje bojowe (+4,30% do jego zasiegu widzenia). Domyslnie wl - wiekszosc graczy ich uzywa.',
+        'msa_def_BIA_tip': 'Zakladaj, ze zaloga wroga ma Braterstwo broni (+2,53% zasiegu). Domyslnie wl.',
+        'msa_def_reconSitAware_tip': 'Zakladaj, ze wrog ma Zwiad + Rozeznanie w sytuacji (+7,39% zasiegu razem). Domyslnie wl.',
+        'msa_def_directives_tip': 'Zakladaj dyrektywe na zasieg na sprzecie wroga (x1,025 na wykrytym sprzecie). Domyslnie wyl - rzadsze.',
+        'msa_def_fieldUpgrades_tip': 'Zakladaj ulepszenie polowe na zasieg (tabela per-czolg w spotmeter.json). BETA, domyslnie wyl - serwer tego nie wysyla, wiec to szacunek.',
+        'msa_def_optics_tip': 'Zalozona optyka wroga - wiecej optyki = wiekszy zasieg wroga. WYL / zwykla +10% / na slocie +11,5% / z nagrod +12,5% / ulepszona +13,5%.',
+        'msa_def_vents_tip': 'Zalozona wentylacja wroga - wzmacnia powyzsze bonusy zalogi (racje / BIA / zwiad). WYL / +5% / +6,25% / +7,5% / +8,5%.',
+        'msa_def_cvs_tip': 'Zalozony CVS wroga (system widzenia dowodcy) - obniza TWOJE camo w ruchu, wiec w ruchu widac Cie z dalej. WYL / zwykly -10% / na slocie -12,5%.',
+        'msa_def_autopick_tip': 'Automatycznie bierz na cel najblizszego wroga i dopasuj okrag do jego zasiegu, aktualizujac gdy sie przemieszcza. Reczny wybor (Numpad 2/8) nadpisuje; stosuje presety per-klasa ponizej.',
+        'msa_preset_class_tip': 'Wybierz, ktorej klasy pojazdow edytujesz preset auto-dobierania. Kazda klasa moze zakladac inny loadout wroga.',
+        'msa_preset_edit_tip': 'Loadout wroga, ktory auto-dobieranie zaklada, gdy najblizszy wrog jest tej klasy.',
+        'msa_preset_lt_tip': 'Loadout wroga, ktory auto-dobieranie zaklada, gdy najblizszy wrog to czolg lekki.',
+        'msa_preset_df_tip': 'Loadout wroga zakladany dla wszystkich klas poza lekkimi.',
+        'msa_circle_tip': 'Rysuj okrag dystansu wykrycia SpotMetera na minimapie (z ilu metrow aktualnie Cie widac). Wyl = ukryj. Uwaga: z minimapa XVM to XVM decyduje o kolorze okregu.',
+        'msa_alpha_tip': 'Przezroczystosc okregu na minimapie, 10-100%. Nizej = bardziej przezroczysty.',
+        'msa_language_tip': 'Jezyk interfejsu panelu i tego menu. Auto = wg klienta gry (polski -> PL, reszta -> EN).',
+        'msa_hotkey_tip': 'Pokaz lub ukryj panel wyboru celu w bitwie. Domyslnie PageDown - jedyny sposob, zeby przywolac panel, gdy startuje ukryty.',
         'tl_rations': 'racje', 'tl_BIA': 'BIA', 'tl_reconSitAware': 'Zwiad+Rozezn.',
         'tl_directives': 'dyrektywy', 'tl_fieldUpgrades': 'ulepsz.pol',
         'tl_optics': 'optyka', 'tl_vents': 'wentyl.', 'tl_cvs': 'CVS', 'tl_auto': 'auto',
@@ -376,9 +435,11 @@ DEFAULT_CONFIG = {
     # (same model = same view range = same circle). Numpad 2/8 then steps
     # types, not individuals. False = list every enemy separately.
     'battlePanelGroupSameTanks': True,
-    # Auto-hide the panel when any WG window opens (research/depot/dialogs in
-    # the garage, TAB-style overlays in battle); restore it when the last one
-    # closes. False = panel always stays on top.
+    # v6.1+: battle-only - hide the panel while a scoreboard key
+    # (battleHidePanelKeys, TAB / N) is HELD, restoring it on release so it
+    # doesn't cover the team-stats overlay. (The old "hide on any WG window open"
+    # behaviour + the lobby window-watch are gone; the key name is kept for
+    # config back-compat.) False = panel always stays on top.
     'autoHidePanelOnWindow': True,
     # In battle, hide the panel while one of these keys is held (TAB / N show
     # the team-stats overlays); released -> panel returns. WoT Keys names.
@@ -686,7 +747,7 @@ _MSA_LINKAGE = 'spotmeter'
 # INCREASES - an unbumped change silently keeps the old menu (e.g. the
 # 'default' class stayed in the dropdown after its removal). User values
 # survive a bump: the new template is seeded from _CFG.
-_MSA_SETTINGS_VERSION = 6
+_MSA_SETTINGS_VERSION = 7   # v7.1: added tooltips to the settings controls
 _MSA_API = None
 _MSA_TEMPLATES = None
 _MSA_REGISTERED = False
@@ -872,11 +933,12 @@ def _msa_val(var, fallback):
 def _msa_loadout_block(t, label_key, prefix, toggles, levels, lv5):
     """label + 5 toggle checkboxes + 3 level dropdowns - used for the
     battle-start defaults and the auto-pick class preset editor."""
-    block = [t.createLabel(_t(label_key))]
+    block = [t.createLabel(_t(label_key), tooltip=_msa_tip(label_key))]
     for key in _MSA_TOGGLE_KEYS:
         block.append(t.createCheckbox(_t('msa_def_' + key), prefix + key,
                                       bool(_msa_val(prefix + key,
-                                                    toggles.get(key, False)))))
+                                                    toggles.get(key, False))),
+                                      tooltip=_msa_tip('msa_def_' + key)))
     for key, cap in _MSA_LEVEL_CAPS:
         opts = lv5[:cap + 1]
         try:
@@ -884,7 +946,8 @@ def _msa_loadout_block(t, label_key, prefix, toggles, levels, lv5):
         except (ValueError, TypeError):
             cur = 0
         block.append(t.createDropdown(_t('msa_def_' + key), prefix + key,
-                                      opts, cur, width=200))
+                                      opts, cur, tooltip=_msa_tip('msa_def_' + key),
+                                      width=200))
     return block
 
 
@@ -900,10 +963,12 @@ def _msa_build_template():
     # --- column 1: panel + battle-start loadout + auto-pick presets ---
     master = t.createCheckbox(_t('msa_battle_panel'), 'battlePanelEnabled',
                               bool(_msa_val('battlePanelEnabled',
-                                            _CFG.get('battlePanelEnabled', False))))
+                                            _CFG.get('battlePanelEnabled', False))),
+                              tooltip=_msa_tip('msa_battle_panel'))
     group_tanks = t.createCheckbox(_t('msa_group_tanks'), 'battlePanelGroupSameTanks',
                                    bool(_msa_val('battlePanelGroupSameTanks',
-                                                 _CFG.get('battlePanelGroupSameTanks', True))))
+                                                 _CFG.get('battlePanelGroupSameTanks', True))),
+                                   tooltip=_msa_tip('msa_group_tanks'))
     column1 = []
     if grouping:
         # Fork-only nicety: indent + grey the sub-option while the battle
@@ -913,7 +978,8 @@ def _msa_build_template():
         column1 += [master, group_tanks]
     column1.append(t.createCheckbox(_t('msa_autohide'), 'autoHidePanelOnWindow',
                                     bool(_msa_val('autoHidePanelOnWindow',
-                                                  _CFG.get('autoHidePanelOnWindow', True)))))
+                                                  _CFG.get('autoHidePanelOnWindow', True))),
+                                    tooltip=_msa_tip('msa_autohide')))
     # Battle-start loadout defaults (ex-garage-panel).
     column1.append(t.createEmpty())
     column1 += _msa_loadout_block(t, 'msa_defaults_label', 'def_',
@@ -924,7 +990,8 @@ def _msa_build_template():
     column1.append(t.createEmpty())
     autopick = t.createCheckbox(_t('msa_def_autopick'), 'def_autopick',
                                 bool(_msa_val('def_autopick',
-                                              _CFG.get('autoPickEnabled', False))))
+                                              _CFG.get('autoPickEnabled', False))),
+                                tooltip=_msa_tip('msa_def_autopick'))
     presets = _CFG.get('autoPresets') or {}
     preset_controls = []
     if _MSA_FORK_LIVE:
@@ -939,7 +1006,7 @@ def _msa_build_template():
         preset_controls.append(t.createDropdown(
             _t('msa_preset_class'), 'preset_class',
             [_t(lab) for _cls, lab in _MSA_PRESET_CLASSES],
-            _MSA_PRESET_SEL, width=200))
+            _MSA_PRESET_SEL, tooltip=_msa_tip('msa_preset_class'), width=200))
         preset_controls += _msa_loadout_block(t, 'msa_preset_edit', 'ap_',
                                               p, p, lv5)
     else:
@@ -964,15 +1031,17 @@ def _msa_build_template():
     column2 = [
         t.createCheckbox(_t('msa_circle'), 'showMinimapCircle',
                          bool(_msa_val('showMinimapCircle',
-                                       _CFG.get('showMinimapCircle', True)))),
-        t.createSlider(_t('msa_alpha'), 'alpha', alpha_val, 10, 100, 5),
+                                       _CFG.get('showMinimapCircle', True))),
+                         tooltip=_msa_tip('msa_circle')),
+        t.createSlider(_t('msa_alpha'), 'alpha', alpha_val, 10, 100, 5,
+                       tooltip=_msa_tip('msa_alpha')),
         t.createDropdown(_t('msa_language'), 'languageIdx',
                          [_t('msa_lang_auto'), 'English', 'Polski'],
-                         lang_val, width=200),
+                         lang_val, tooltip=_msa_tip('msa_language'), width=200),
         t.createEmpty(),
         t.createLabel(_t('msa_hotkeys_label')),
         t.createHotkey(_t('msa_hotkey'), 'panelToggleKeyset',
-                       _msa_keyset_value()),
+                       _msa_keyset_value(), tooltip=_msa_tip('msa_hotkey')),
     ]
     for cfg_key, label_key in _MSA_HOTKEYS:
         name = _CFG.get(cfg_key) or ''
