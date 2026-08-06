@@ -1,6 +1,6 @@
 <!--
 Release listing texts for SpotMeter, per distribution channel.
-Content in the code blocks is the CURRENT (v7.0.0) copy - paste it straight in.
+Content in the code blocks is the CURRENT (v7.1.0) copy - paste it straight in.
 
 Channels:
   1. WG Mods portal (wgmods.net) - ENGLISH. Three fields with HARD char limits.
@@ -22,14 +22,14 @@ REQUIRES net.openwg.gameface (free, MIT; already shipped in common modpacks):
 - the in-battle panel is a Gameface (HTML/CSS/JS) overlay rendered through
   net.openwg.gameface. Without it the minimap circle + numpad hotkeys still work,
   but the panel does not appear.
-- v7.0.0 ships NO SWF - the old bundled GUIFlash fork is gone, so SpotMeter can
+- SpotMeter ships NO SWF (since v7.0.0) - the old bundled GUIFlash fork is gone, so SpotMeter can
   never duplicate the net.gambiter.* classes or disturb another GUIFlash mod's
   saved window positions.
 - spotmeter.json config is optional (built-in defaults if absent), stored in AppData.
 - a mods-settings menu (Aslain's aslainMenu / izeberg's ModsSettingsAPI) is
   OPTIONAL - it only adds the in-garage settings page; the mod runs on JSON config
   + hotkeys without it.
-- requires WoT 2.3.1.0; no special load order.
+- requires WoT 2.3.1.1; no special load order.
 - coexists cleanly: own namespace, replaces no WG UI files, every game hook wraps
   the original, hotkeys are never consumed.
 
@@ -38,20 +38,15 @@ REQUIRES net.openwg.gameface (free, MIT; already shipped in common modpacks):
 ## Version changes  (max 1000 characters)
 
 ```
-v7.0.0 - for WoT 2.3.1.0.
-
-Major update: the in-battle panel is rebuilt on Gameface (modern HTML/CSS/JS).
-
-CHANGED
-- The panel is now a Gameface overlay instead of a Scaleform/GUIFlash SWF. SpotMeter ships NO SWF anymore, so it can never collide with another GUIFlash mod's saved window positions. The minimap circle and the whole spot-distance engine are unchanged.
+v7.1.0 - for WoT 2.3.1.1.
 
 NEW
-- Requires net.openwg.gameface (free, in common modpacks). Without it the circle + hotkeys still work.
-- Modern look: transparent panel, white text, green for the enabled options.
-- Drag the panel by its header (position saved).
-- Collapse arrow: shrink it to just the picked vehicle + spot distance (state remembered).
+- Hover tooltips in the settings menu: every option in the in-garage configurator (a mods-settings menu such as aslainMenu / ModsSettingsAPI) now shows a short hint on hover, in English and Polish - what the option assumes, the exact view-range % for the enemy-loadout toggles and optics/vents/CVS levels, and a note that XVM controls the minimap circle's colour while its minimap is active.
 
-Cleaner log: benign status lines are INFO now (no more warning-looking noise).
+CHANGED
+- Rebuilt for WoT 2.3.1.1 (minor patch; no other gameplay changes).
+
+Reminder (unchanged since v7.0.0): the in-battle panel is a Gameface overlay and REQUIRES net.openwg.gameface (free, MIT; already in common modpacks). The minimap circle and the hotkeys work even without it.
 ```
 
 ## Mod description  (max 3000 characters)
@@ -96,10 +91,10 @@ Hotkeys are on the numpad and work with NumLock on or off; everything is configu
 ```
 1. Install net.openwg.gameface (free; already in most modpacks, or from the OpenWG project). SpotMeter's panel needs it.
 
-2. Download spotmeter-v7.0.0.wotmod.
+2. Download spotmeter-v7.1.0.wotmod.
 
-3. Copy it into:  <WoT>\mods\2.3.1.0\
-   Example:  D:\Games\World_of_Tanks_EU\mods\2.3.1.0\
+3. Copy it into:  <WoT>\mods\2.3.1.1\
+   Example:  D:\Games\World_of_Tanks_EU\mods\2.3.1.1\
    (create the folder if it does not exist)
 
 4. Launch the game. On first launch it briefly restarts once to register the panel (net.openwg.gameface rebuilds its resource map) - this is normal. The minimap circle works right away; in battle, PageDown shows/hides the panel and you drag it by the header.
@@ -107,7 +102,7 @@ Hotkeys are on the numpad and work with NumLock on or off; everything is configu
 5. (Optional) Install a mods-settings menu (aslainMenu / ModsSettingsAPI) to configure in the garage, or edit:
    %APPDATA%\Wargaming.net\WorldOfTanks\mods\spotmeter\spotmeter.json
 
-To uninstall: delete the .wotmod from mods\2.3.1.0\. Requires WoT 2.3.1.0 + net.openwg.gameface.
+To uninstall: delete the .wotmod from mods\2.3.1.1\. Requires WoT 2.3.1.1 + net.openwg.gameface.
 ```
 
 # Aslain's modpack — Polish
@@ -118,25 +113,19 @@ limitu znakow - Aslain lubi zwiezle wpisy). Dwie formy do wyboru.
 ## Zmiany wersji — jedna linia (kompaktowy changelog Aslaina)
 
 ```
-SpotMeter v7.0.0 (WoT 2.3.1.0) — panel bitewny przepisany na Gameface (nowoczesny HTML/CSS/JS) zamiast GUIFlash/SWF: mod nie wysyła już żadnego SWF-a, więc nie może kolidować z zapisanymi pozycjami okien innych modów GUIFlash. Nowości: przezroczysty styl, przeciąganie za nagłówek (zapis pozycji), strzałka zwijania. WYMAGA net.openwg.gameface. Czystszy log (statusy przez INFO). (autor: ISEDR_Mikus)
+SpotMeter v7.1.0 (WoT 2.3.1.1) — podpowiedzi (tooltips) w menu ustawień: każda opcja w konfiguratorze w garażu ma teraz dymek na hover (PL/EN) z krótkim wyjaśnieniem — m.in. dokładne % zakładanego wyposażenia wroga oraz uwaga, że przy aktywnej minimapie XVM to XVM decyduje o kolorze okręgu. Rebuild pod WoT 2.3.1.1 (drobny patch, bez innych zmian). (autor: ISEDR_Mikus)
 ```
 
 ## Zmiany wersji — pełne
 
 ```
-SpotMeter v7.0.0 — pod WoT 2.3.1.0.
+SpotMeter v7.1.0 — pod WoT 2.3.1.1.
 
-Duża zmiana: panel bitewny przepisany na Gameface (nowoczesny HTML/CSS/JS).
-
-ZMIANY
-- Panel to teraz overlay Gameface zamiast SWF-a (GUIFlash/Scaleform). SpotMeter NIE wysyła już żadnego SWF-a — nie może kolidować z zapisanymi pozycjami okien innych modów GUIFlash (to był ten problem, który zgłaszał Aslain z modem RaJCeLa). Okrąg na minimapie i cały silnik spot-distance bez zmian.
+QoL + rebuild pod nową wersję gry.
 
 NOWE
-- WYMAGA net.openwg.gameface (darmowa, MIT; jest w typowych paczkach). Bez niej okrąg + klawisze działają, panelu nie ma.
-- Nowoczesny wygląd: przezroczyste tło, biały tekst, zielone włączone opcje.
-- Przeciąganie panelu za nagłówek (pozycja zapisywana).
-- Strzałka zwijania: panel kurczy się do samego wybranego pojazdu + spot distance (stan zapamiętany).
+- Podpowiedzi (tooltips) w menu ustawień — każda opcja w konfiguratorze w garażu (menu ustawień modów: aslainMenu / ModsSettingsAPI) pokazuje na hover krótki dymek (PL/EN): co dana opcja zakłada, dokładne % zakładanego wyposażenia wroga (racje / BIA / zwiad + optyka / wentylacja / CVS) oraz uwaga, że przy aktywnej minimapie XVM to XVM decyduje o kolorze okręgu.
 
-POPRAWKI
-- Czystszy log: benign statusy idą teraz przez INFO (koniec warningów wyglądających jak błędy). „module loaded" leci przez INFO.
+ZMIANY
+- Rebuild pod WoT 2.3.1.1 (drobny patch nad 2.3.1.0 — brak zmian w silniku / API; czysty retarget).
 ```

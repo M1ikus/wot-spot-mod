@@ -1,7 +1,23 @@
 # Changelog
 
 All notable changes to **SpotMeter**. Dates are ISO (YYYY-MM-DD). Full per-commit
-history is in the git tags (`v5.1.0` … `v7.0.0`).
+history is in the git tags (`v5.1.0` … `v7.1.0`).
+
+## [7.1.0] — Unreleased
+
+QoL + retarget. Built for **WoT 2.3.1.1** (a minor patch over 2.3.1.0 — no engine /
+modding-API changes; SpotMeter is a straight retarget + rebuild).
+
+### Added
+- **Hover tooltips in the settings menu** — every control in the in-garage
+  ModsSettingsAPI configurator (aslainMenu / izeberg) now shows a short hint on hover,
+  in English and Polish: what each option assumes, the exact view-range % for the
+  enemy-loadout toggles and optics/vents/CVS levels, and a note that XVM controls the
+  minimap circle's colour while its minimap is active. Implemented via MSA's native
+  per-control `tooltip=` field; `_MSA_SETTINGS_VERSION` bumped so the menu re-renders.
+
+### Changed
+- Retargeted to **WoT 2.3.1.1**.
 
 ## [7.0.0] — 2026-07-15
 
