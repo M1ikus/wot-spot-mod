@@ -63,17 +63,24 @@ def _t(key):
 
 def _msa_tip(base_key):
     """Tooltip for a settings control whose base i18n key is `base_key`, read
-    from `base_key + '_tip'`. Returns None when no tooltip is defined, so the
-    menu builders can pass tooltip=_msa_tip(...) unconditionally (MSA omits the
-    field on None). Kept separate from _t() on purpose: tooltips are optional,
-    so a missing one must degrade to None, not to the raw key string."""
+    from `base_key + '_tip'` and wrapped in the {HEADER}/{BODY} markup the
+    ModsSettingsAPI tooltip renderer REQUIRES. The API sets the raw string as
+    the component's Scaleform `toolTip`, which the WG complex-tooltip parser
+    only renders when it carries {HEADER}..{/HEADER}{BODY}..{/BODY} tags - a
+    plain string still lights the info (i) icon but never shows a hover bubble
+    (verified against izeberg's ComponentsFactory.as + the templates example).
+    Header = the control's own label; body = the tip text. Returns None when no
+    tip is defined, so builders can pass tooltip=_msa_tip(...) unconditionally."""
     global _LANG
     if _LANG is None:
         _LANG = _detect_lang()
     tkey = base_key + '_tip'
-    return (_STRINGS.get(_LANG, _STRINGS['en']).get(tkey)
-            or _STRINGS['en'].get(tkey)
-            or None)
+    body = (_STRINGS.get(_LANG, _STRINGS['en']).get(tkey)
+            or _STRINGS['en'].get(tkey))
+    if not body:
+        return None
+    header = _t(base_key).rstrip(' :')
+    return '{HEADER}%s{/HEADER}{BODY}%s{/BODY}' % (header, body)
 
 
 _STRINGS = {
@@ -747,7 +754,7 @@ _MSA_LINKAGE = 'spotmeter'
 # INCREASES - an unbumped change silently keeps the old menu (e.g. the
 # 'default' class stayed in the dropdown after its removal). User values
 # survive a bump: the new template is seeded from _CFG.
-_MSA_SETTINGS_VERSION = 7   # v7.1: added tooltips to the settings controls
+_MSA_SETTINGS_VERSION = 8   # v7.1: tooltips ({HEADER}/{BODY} markup so they render)
 _MSA_API = None
 _MSA_TEMPLATES = None
 _MSA_REGISTERED = False
