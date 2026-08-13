@@ -3,7 +3,7 @@
 All notable changes to **SpotMeter**. Dates are ISO (YYYY-MM-DD). Full per-commit
 history is in the git tags (`v5.1.0` … `v7.2.0`).
 
-## [7.2.0] — Unreleased
+## [7.2.0] — 2026-08-12
 
 QoL + retarget. Built for **WoT 2.3.1.2** (a minor patch over 2.3.1.1 — no engine /
 modding-API changes; a straight retarget + rebuild).
