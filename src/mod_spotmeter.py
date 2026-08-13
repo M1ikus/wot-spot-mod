@@ -6,7 +6,7 @@
 # Works alongside the game's existing view-range circles (does not replace them).
 #
 # Loader entry: scripts/client/gui/mods/mod_spotmeter.pyc
-# Game version: World of Tanks 2.3.1.1 (Python 2.7 bytecode)
+# Game version: World of Tanks 2.3.1.2 (Python 2.7 bytecode)
 import json
 import logging
 import os
@@ -23,7 +23,7 @@ _logger = logging.getLogger('SpotMeter')
 # WARNING-level so the line shows up in python.log even if the user's logging
 # level is filtering INFO out. This proves the mod was at least imported by
 # the loader; if you don't see this line, the .wotmod isn't being picked up.
-MOD_VERSION = '7.1.0'
+MOD_VERSION = '7.2.0'
 # Short "major.minor" form shown in panel titles ("6.0.0" -> "6.0"); the
 # full MOD_VERSION still drives logs / version reporting / meta.xml. Bumping
 # the patch (6.0.1) keeps the panel at "6.0"; a minor bump (6.1.0) -> "6.1".
@@ -145,6 +145,16 @@ _STRINGS = {
         'msa_alpha_tip': 'Opacity of the minimap circle, 10-100%. Lower = more see-through.',
         'msa_language_tip': 'UI language for the panel and this menu. Auto = follow the game client (Polish -> PL, everything else -> EN).',
         'msa_hotkey_tip': 'Show or hide the in-battle picker panel. Default PageDown - the only way to summon it when the panel starts hidden.',
+        'msa_colors_label': 'Circle colours',
+        'msa_colors_label_tip': 'Colour of the minimap spot-distance circle in each state. NOTE: while XVM\'s minimap is active, XVM repaints the circle in its own colour and these settings are ignored - they apply when you are not running the XVM minimap.',
+        'msa_col_moving': 'Moving',
+        'msa_col_moving_tip': 'Circle colour while you are moving (lowest camo).',
+        'msa_col_still': 'Still',
+        'msa_col_still_tip': 'Circle colour while you sit still (camo builds up).',
+        'msa_col_aftershot': 'After firing',
+        'msa_col_aftershot_tip': 'Circle colour for ~3s after you fire (camo penalty).',
+        'msa_col_camonet': 'Camo net (3s still)',
+        'msa_col_camonet_tip': 'Circle colour once a camouflage net kicks in (3s stationary).',
         'tl_rations': 'rations', 'tl_BIA': 'BIA', 'tl_reconSitAware': 'recon+SitA',
         'tl_directives': 'directives', 'tl_fieldUpgrades': 'field upg.',
         'tl_optics': 'optics', 'tl_vents': 'vents', 'tl_cvs': 'CVS', 'tl_auto': 'auto',
@@ -215,6 +225,16 @@ _STRINGS = {
         'msa_alpha_tip': 'Przezroczystosc okregu na minimapie, 10-100%. Nizej = bardziej przezroczysty.',
         'msa_language_tip': 'Jezyk interfejsu panelu i tego menu. Auto = wg klienta gry (polski -> PL, reszta -> EN).',
         'msa_hotkey_tip': 'Pokaz lub ukryj panel wyboru celu w bitwie. Domyslnie PageDown - jedyny sposob, zeby przywolac panel, gdy startuje ukryty.',
+        'msa_colors_label': 'Kolory okregu',
+        'msa_colors_label_tip': 'Kolor okregu dystansu wykrycia na minimapie dla kazdego stanu. UWAGA: przy aktywnej minimapie XVM to XVM przemalowuje okrag swoim kolorem i te ustawienia sa ignorowane - dzialaja, gdy nie uzywasz minimapy XVM.',
+        'msa_col_moving': 'W ruchu',
+        'msa_col_moving_tip': 'Kolor okregu gdy jedziesz (najnizsze camo).',
+        'msa_col_still': 'W postoju',
+        'msa_col_still_tip': 'Kolor okregu gdy stoisz (camo rosnie).',
+        'msa_col_aftershot': 'Po strzale',
+        'msa_col_aftershot_tip': 'Kolor okregu przez ~3s po strzale (kara za strzal).',
+        'msa_col_camonet': 'Siatka masku. (3s postoj)',
+        'msa_col_camonet_tip': 'Kolor okregu gdy zadziala siatka maskujaca (3s w bezruchu).',
         'tl_rations': 'racje', 'tl_BIA': 'BIA', 'tl_reconSitAware': 'Zwiad+Rozezn.',
         'tl_directives': 'dyrektywy', 'tl_fieldUpgrades': 'ulepsz.pol',
         'tl_optics': 'optyka', 'tl_vents': 'wentyl.', 'tl_cvs': 'CVS', 'tl_auto': 'auto',
@@ -754,7 +774,7 @@ _MSA_LINKAGE = 'spotmeter'
 # INCREASES - an unbumped change silently keeps the old menu (e.g. the
 # 'default' class stayed in the dropdown after its removal). User values
 # survive a bump: the new template is seeded from _CFG.
-_MSA_SETTINGS_VERSION = 8   # v7.1: tooltips ({HEADER}/{BODY} markup so they render)
+_MSA_SETTINGS_VERSION = 9   # v7.2: circle-colour pickers added to the menu
 _MSA_API = None
 _MSA_TEMPLATES = None
 _MSA_REGISTERED = False
@@ -928,6 +948,15 @@ _MSA_LIVE_PENDING = {}      # {varName: value} - other uncommitted edits (surviv
 
 _MSA_TOGGLE_KEYS = ('rations', 'BIA', 'reconSitAware', 'directives', 'fieldUpgrades')
 _MSA_LEVEL_CAPS = (('optics', 4), ('vents', 4), ('cvs', 2))
+# v7.2: circle-colour pickers. (config key, default 0xRRGGBB, i18n label key).
+# _CFG stores each colour as a 24-bit int; MSA's createColorChoice wants a hex
+# string - convert int->hex to seed the picker and hex->int on apply.
+_MSA_COLOR_VARS = (
+    ('colorMoving',    0xFF6347, 'msa_col_moving'),
+    ('colorStill',     0x32CD32, 'msa_col_still'),
+    ('colorAfterShot', 0xFFA500, 'msa_col_aftershot'),
+    ('colorCamoNet',   0x228B22, 'msa_col_camonet'),
+)
 
 
 def _msa_val(var, fallback):
@@ -1042,6 +1071,21 @@ def _msa_build_template():
                          tooltip=_msa_tip('msa_circle')),
         t.createSlider(_t('msa_alpha'), 'alpha', alpha_val, 10, 100, 5,
                        tooltip=_msa_tip('msa_alpha')),
+    ]
+    # v7.2: per-state circle-colour pickers. createColorChoice is aslainMenu /
+    # newer-izeberg only, so feature-detect and skip on older menus (the colours
+    # stay editable in spotmeter.json). Seed the picker with the config int as a
+    # hex string; a live-changed pending value is already a hex string.
+    if hasattr(t, 'createColorChoice'):
+        column2.append(t.createLabel(_t('msa_colors_label'),
+                                     tooltip=_msa_tip('msa_colors_label')))
+        for var, dflt, lk in _MSA_COLOR_VARS:
+            pend = _MSA_LIVE_PENDING.get(var)
+            seed = pend if isinstance(pend, basestring) \
+                else '%06X' % (int(_CFG.get(var, dflt)) & 0xFFFFFF)
+            column2.append(t.createColorChoice(_t(lk), var, seed,
+                                               tooltip=_msa_tip(lk)))
+    column2 += [
         t.createDropdown(_t('msa_language'), 'languageIdx',
                          [_t('msa_lang_auto'), 'English', 'Polski'],
                          lang_val, tooltip=_msa_tip('msa_language'), width=200),
@@ -1131,6 +1175,14 @@ def _msa_apply(s, live=True):
             _CFG['alpha'] = max(10, min(100, int(s['alpha'])))  # clamp to slider bounds
         except (ValueError, TypeError):
             pass
+    # v7.2: circle-colour pickers return a hex string ('RRGGBB', maybe '#'-prefixed);
+    # store back as a 24-bit int. Colours take effect next battle (no garage circle).
+    for var, _dflt, _lk in _MSA_COLOR_VARS:
+        if var in s:
+            try:
+                _CFG[var] = int(str(s[var]).lstrip('#'), 16) & 0xFFFFFF
+            except (ValueError, TypeError):
+                pass
     if 'enabled' in s:
         _CFG['enabled'] = bool(s['enabled'])
     if 'panelToggleKeyset' in s:

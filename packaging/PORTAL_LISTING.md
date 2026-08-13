@@ -1,6 +1,6 @@
 <!--
 Release listing texts for SpotMeter, per distribution channel.
-Content in the code blocks is the CURRENT (v7.1.0) copy - paste it straight in.
+Content in the code blocks is the CURRENT (v7.2.0) copy - paste it straight in.
 
 Channels:
   1. WG Mods portal (wgmods.net) - ENGLISH. Three fields with HARD char limits.
@@ -29,7 +29,7 @@ REQUIRES net.openwg.gameface (free, MIT; already shipped in common modpacks):
 - a mods-settings menu (Aslain's aslainMenu / izeberg's ModsSettingsAPI) is
   OPTIONAL - it only adds the in-garage settings page; the mod runs on JSON config
   + hotkeys without it.
-- requires WoT 2.3.1.1; no special load order.
+- requires WoT 2.3.1.2; no special load order.
 - coexists cleanly: own namespace, replaces no WG UI files, every game hook wraps
   the original, hotkeys are never consumed.
 
@@ -38,15 +38,15 @@ REQUIRES net.openwg.gameface (free, MIT; already shipped in common modpacks):
 ## Version changes  (max 1000 characters)
 
 ```
-v7.1.0 - for WoT 2.3.1.1.
+v7.2.0 - for WoT 2.3.1.2.
 
 NEW
-- Hover tooltips in the settings menu: every option in the in-garage configurator (a mods-settings menu such as aslainMenu / ModsSettingsAPI) now shows a short hint on hover, in English and Polish - what the option assumes, the exact view-range % for the enemy-loadout toggles and optics/vents/CVS levels, and a note that XVM controls the minimap circle's colour while its minimap is active.
+- Circle-colour pickers in the settings menu: the four state colours (moving / still / after firing / camo net) are now editable from the in-garage configurator (a mods-settings menu such as aslainMenu / ModsSettingsAPI) with real colour pickers, instead of hand-editing decimal RGB values in spotmeter.json. The section tooltip reminds you that XVM's minimap, while active, repaints the circle in its own colour and overrides these.
 
 CHANGED
-- Rebuilt for WoT 2.3.1.1 (minor patch; no other gameplay changes).
+- Rebuilt for WoT 2.3.1.2 (minor patch; no other gameplay changes).
 
-Reminder (unchanged since v7.0.0): the in-battle panel is a Gameface overlay and REQUIRES net.openwg.gameface (free, MIT; already in common modpacks). The minimap circle and the hotkeys work even without it.
+Reminder (since v7.0.0): the in-battle panel is a Gameface overlay and REQUIRES net.openwg.gameface (free, MIT; already in common modpacks). The minimap circle and the hotkeys work even without it.
 ```
 
 ## Mod description  (max 3000 characters)
@@ -91,10 +91,10 @@ Hotkeys are on the numpad and work with NumLock on or off; everything is configu
 ```
 1. Install net.openwg.gameface (free; already in most modpacks, or from the OpenWG project). SpotMeter's panel needs it.
 
-2. Download spotmeter-v7.1.0.wotmod.
+2. Download spotmeter-v7.2.0.wotmod.
 
-3. Copy it into:  <WoT>\mods\2.3.1.1\
-   Example:  D:\Games\World_of_Tanks_EU\mods\2.3.1.1\
+3. Copy it into:  <WoT>\mods\2.3.1.2\
+   Example:  D:\Games\World_of_Tanks_EU\mods\2.3.1.2\
    (create the folder if it does not exist)
 
 4. Launch the game. On first launch it briefly restarts once to register the panel (net.openwg.gameface rebuilds its resource map) - this is normal. The minimap circle works right away; in battle, PageDown shows/hides the panel and you drag it by the header.
@@ -102,7 +102,7 @@ Hotkeys are on the numpad and work with NumLock on or off; everything is configu
 5. (Optional) Install a mods-settings menu (aslainMenu / ModsSettingsAPI) to configure in the garage, or edit:
    %APPDATA%\Wargaming.net\WorldOfTanks\mods\spotmeter\spotmeter.json
 
-To uninstall: delete the .wotmod from mods\2.3.1.1\. Requires WoT 2.3.1.1 + net.openwg.gameface.
+To uninstall: delete the .wotmod from mods\2.3.1.2\. Requires WoT 2.3.1.2 + net.openwg.gameface.
 ```
 
 # Aslain's modpack — Polish
@@ -113,19 +113,19 @@ limitu znakow - Aslain lubi zwiezle wpisy). Dwie formy do wyboru.
 ## Zmiany wersji — jedna linia (kompaktowy changelog Aslaina)
 
 ```
-SpotMeter v7.1.0 (WoT 2.3.1.1) — podpowiedzi (tooltips) w menu ustawień: każda opcja w konfiguratorze w garażu ma teraz dymek na hover (PL/EN) z krótkim wyjaśnieniem — m.in. dokładne % zakładanego wyposażenia wroga oraz uwaga, że przy aktywnej minimapie XVM to XVM decyduje o kolorze okręgu. Rebuild pod WoT 2.3.1.1 (drobny patch, bez innych zmian). (autor: ISEDR_Mikus)
+SpotMeter v7.2.0 (WoT 2.3.1.2) — color-pickery kolorów okręgu w menu ustawień: 4 kolory stanów (w ruchu / w postoju / po strzale / siatka maskująca) można teraz zmienić z poziomu konfiguratora w garażu, zamiast ręcznie w spotmeter.json. Tooltip przypomina, że przy aktywnej minimapie XVM to XVM decyduje o kolorze okręgu. Rebuild pod WoT 2.3.1.2 (drobny patch, bez innych zmian). (autor: ISEDR_Mikus)
 ```
 
 ## Zmiany wersji — pełne
 
 ```
-SpotMeter v7.1.0 — pod WoT 2.3.1.1.
+SpotMeter v7.2.0 — pod WoT 2.3.1.2.
 
 QoL + rebuild pod nową wersję gry.
 
 NOWE
-- Podpowiedzi (tooltips) w menu ustawień — każda opcja w konfiguratorze w garażu (menu ustawień modów: aslainMenu / ModsSettingsAPI) pokazuje na hover krótki dymek (PL/EN): co dana opcja zakłada, dokładne % zakładanego wyposażenia wroga (racje / BIA / zwiad + optyka / wentylacja / CVS) oraz uwaga, że przy aktywnej minimapie XVM to XVM decyduje o kolorze okręgu.
+- Color-pickery kolorów okręgu w menu ustawień — 4 kolory stanów (w ruchu / w postoju / po strzale / siatka maskująca) można teraz zmienić z poziomu konfiguratora w garażu (menu ustawień modów: aslainMenu / ModsSettingsAPI) prawdziwymi pickerami, zamiast ręcznie edytować dziesiętne wartości RGB w spotmeter.json. Tooltip przy sekcji przypomina, że przy aktywnej minimapie XVM to XVM przemalowuje okrąg swoim kolorem i nadpisuje te ustawienia.
 
 ZMIANY
-- Rebuild pod WoT 2.3.1.1 (drobny patch nad 2.3.1.0 — brak zmian w silniku / API; czysty retarget).
+- Rebuild pod WoT 2.3.1.2 (drobny patch nad 2.3.1.1 — brak zmian w silniku / API; czysty retarget).
 ```

@@ -1,7 +1,23 @@
 # Changelog
 
 All notable changes to **SpotMeter**. Dates are ISO (YYYY-MM-DD). Full per-commit
-history is in the git tags (`v5.1.0` … `v7.1.0`).
+history is in the git tags (`v5.1.0` … `v7.2.0`).
+
+## [7.2.0] — Unreleased
+
+QoL + retarget. Built for **WoT 2.3.1.2** (a minor patch over 2.3.1.1 — no engine /
+modding-API changes; a straight retarget + rebuild).
+
+### Added
+- **Circle-colour pickers in the settings menu** — the four state colours (moving /
+  still / after-shot / camo-net) are now editable from the in-garage ModsSettingsAPI
+  configurator via colour pickers, instead of hand-editing decimal RGB ints in
+  `spotmeter.json`. The section tooltip notes that XVM's minimap, while active, repaints
+  the circle in its own colour and overrides these. (aslainMenu / newer izeberg;
+  feature-detected via `hasattr`, so older menus just keep the JSON path.)
+
+### Changed
+- Retargeted to **WoT 2.3.1.2**.
 
 ## [7.1.0] — 2026-08-06
 
