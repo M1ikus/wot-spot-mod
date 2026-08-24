@@ -45,7 +45,7 @@ Fix every `[FAIL]` before continuing. Warnings are judgement calls.
 
 ## 2. Manual / in-game (one quick battle + a garage visit)
 
-The author runs these in a clean WoT 2.3.1.2 with **only** SpotMeter **plus its
+The author runs these in a clean WoT 2.3.1.3 with **only** SpotMeter **plus its
 required `net.openwg.gameface` library** installed (the panel is a Gameface
 overlay and will not appear without it).
 
@@ -53,7 +53,7 @@ overlay and will not appear without it).
       the mod, the client restarts itself once while `net.openwg.gameface`
       rebuilds its resource map. This is expected — verify it happens **once**
       and not on every subsequent launch.
-- [ ] **Loads**: `python.log` has `SpotMeter: initialised (version=7.2.0, ...)`
+- [ ] **Loads**: `python.log` has `SpotMeter: initialised (version=7.2.1, ...)`
       and **no** traceback at startup, and **no** WARNING/ERROR lines for benign
       status (module loaded / init / panel backend are all INFO now).
 - [ ] **Minimap circle** appears in battle and recolours: red moving → green
@@ -104,11 +104,11 @@ overlay and will not appear without it).
 
 ## 3. Release steps (after both sections are green)
 
-1. Move the `CHANGELOG.md` `[7.2.0]` entry from *Unreleased* to a dated release.
+1. Move the `CHANGELOG.md` `[7.2.1]` entry from *Unreleased* to a dated release.
 2. Commit (working tree clean → re-run preflight to confirm).
-3. `git tag v7.2.0` and push the tag.
+3. `git tag v7.2.1` and push the tag.
 4. Build the final artifact from the tagged tree; create the GitHub release and
-   attach `dist/spotmeter-v7.2.0.wotmod` (+ the `.zip` bundle).
+   attach `dist/spotmeter-v7.2.1.wotmod` (+ the `.zip` bundle).
 5. Paste the PORTAL_LISTING blocks: EN (version changes / description /
    installation) to wgmods; PL (one-line or full) to Aslain. **Call out the new
    `net.openwg.gameface` requirement** in the note to Aslain.

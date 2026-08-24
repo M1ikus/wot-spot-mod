@@ -1,7 +1,13 @@
 # Changelog
 
 All notable changes to **SpotMeter**. Dates are ISO (YYYY-MM-DD). Full per-commit
-history is in the git tags (`v5.1.0` … `v7.2.0`).
+history is in the git tags (`v5.1.0` … `v7.2.1`).
+
+## [7.2.1] — 2026-08-24
+
+Resave for the new client. Built for **WoT 2.3.1.3** (a minor patch over 2.3.1.2 — same
+`v2.3.1` branch, no engine / modding-API changes). No functional changes; a straight
+retarget + rebuild.
 
 ## [7.2.0] — 2026-08-12
 

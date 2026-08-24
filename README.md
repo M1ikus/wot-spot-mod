@@ -2,7 +2,7 @@
 
 Dodaje na minimapie dodatkowy okrąg pokazujący odległość, z jakiej Twój czołg może zostać zauważony przez przeciwnika. Dochodzi przeciągalny **panel bitewny** (lista przeciwników + picker celu; **PageDown** chowa/pokazuje), **auto-dobieranie** celu z presetami per klasa, pełne **PL/EN** UI oraz **konfigurator w garażu** przez menu ustawień modów (ModsSettingsAPI / aslainMenu — opcjonalne; bez niego działa config `spotmeter.json`).
 
-> Build pod **WoT 2.3.1.2** · wersja moda **7.2.0**.
+> Build pod **WoT 2.3.1.3** · wersja moda **7.2.1**.
 
 ## Co automatycznie / co ręcznie
 
@@ -154,7 +154,7 @@ Server NIE wysyła `vehPostProgression` przeciwnika (jest to `MY_VEHICLE` scope)
 
 Pobierz `spotmeter-v<wersja>.zip` z [GitHub Releases](https://github.com/M1ikus/spotmeter/releases). W środku:
 
-- `spotmeter-v<wersja>.wotmod` → wrzuć do `<WoT>/mods/2.3.1.2/` (wymaga `net.openwg.gameface`)
+- `spotmeter-v<wersja>.wotmod` → wrzuć do `<WoT>/mods/2.3.1.3/` (wymaga `net.openwg.gameface`)
 - `spotmeter.json` (opcjonalny) → wrzuć do `<WoT>/mods/configs/`
 - `INSTALL.txt` — szczegółowa instrukcja krok po kroku
 
@@ -311,6 +311,10 @@ W bitwie naciśnij `NumpadPeriod` (lub klawisz z `reloadKey`) — config wczytuj
 
 ## Roadmap
 
+### v7.2.1 — resave pod WoT 2.3.1.3
+
+- Rebuild bez zmian funkcjonalnych pod nowy klient (drobny patch nad 2.3.1.2 — ta sama gałąź v2.3.1, brak zmian w silniku / API).
+
 ### v7.2 — kolory okręgu z menu + WoT 2.3.1.2
 
 - **Wybór kolorów okręgu z poziomu menu ustawień** — 4 color-pickery (w ruchu / postój / po strzale / siatka maskująca) w konfiguratorze modów; wcześniej kolory dało się zmienić tylko ręcznie w `spotmeter.json` (i to jako dziesiętne inty). Tooltip przy sekcji przypomina, że przy aktywnej minimapie XVM to XVM decyduje o kolorze okręgu.
@@ -424,7 +428,7 @@ Wersja jest czytana z `packaging/meta.xml` — zaktualizuj tam przed kolejnym bu
 ### Hot-test podczas devu
 
 ```sh
-cp build/mod_spotmeter.pyc "<WoT>/res_mods/2.3.1.2/scripts/client/gui/mods/"
+cp build/mod_spotmeter.pyc "<WoT>/res_mods/2.3.1.3/scripts/client/gui/mods/"
 cp src/spotmeter.json "<WoT>/mods/configs/"
 ```
 

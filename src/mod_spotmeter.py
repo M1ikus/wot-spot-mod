@@ -6,7 +6,7 @@
 # Works alongside the game's existing view-range circles (does not replace them).
 #
 # Loader entry: scripts/client/gui/mods/mod_spotmeter.pyc
-# Game version: World of Tanks 2.3.1.2 (Python 2.7 bytecode)
+# Game version: World of Tanks 2.3.1.3 (Python 2.7 bytecode)
 import json
 import logging
 import os
@@ -23,7 +23,7 @@ _logger = logging.getLogger('SpotMeter')
 # WARNING-level so the line shows up in python.log even if the user's logging
 # level is filtering INFO out. This proves the mod was at least imported by
 # the loader; if you don't see this line, the .wotmod isn't being picked up.
-MOD_VERSION = '7.2.0'
+MOD_VERSION = '7.2.1'
 # Short "major.minor" form shown in panel titles ("6.0.0" -> "6.0"); the
 # full MOD_VERSION still drives logs / version reporting / meta.xml. Bumping
 # the patch (6.0.1) keeps the panel at "6.0"; a minor bump (6.1.0) -> "6.1".
