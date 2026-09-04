@@ -1,7 +1,75 @@
 # Changelog
 
 All notable changes to **SpotMeter**. Dates are ISO (YYYY-MM-DD). Full per-commit
-history is in the git tags (`v5.1.0` … `v7.2.1`).
+history is in the git tags (`v5.1.0` … `v7.3.0`).
+
+## [7.3.0] — 2026-09-04
+
+Languages + retarget. Built for **WoT 2.4.0.0** — the first *major* branch change
+(`v2.3.1` → `v2.4`) SpotMeter has been retargeted across in a while, so the whole WG API
+surface the mod touches was re-verified against the new client's `scripts.pkg` before
+rebuilding (minimap `PersonalEntriesPlugin` + its `_addEntry`/`_invoke`/`_setActive`
+bases, the `VIEW_RANGE_CIRCLES` AS3 descriptor, `matrix_factory`, `Avatar.shoot`,
+`constants.VISIBILITY`, the Wulf/Gameface view+window classes and the `items.*`
+descriptors) — all present and unchanged.
+
+### Added
+- **Six new UI languages** — French, Spanish, German, Czech, Italian and Portuguese, so
+  SpotMeter now ships eight (EN / PL / FR / ES / DE / CS / IT / PT) covering both the
+  in-battle panel and every label and hover tooltip in the in-garage settings menu. Wording follows WG's own in-game terminology (*portée de vue*
+  / *alcance de visión* / *Sichtweite*, *Frères d'armes* / *Hermanos de armas* /
+  *Waffenbrüder*, …). `"auto"` picks the language up from the WoT client and now matches
+  on the language-code prefix, so regional variants land on their language instead of
+  silently falling back to English; the settings-menu dropdown lists each language under
+  its own endonym.
+
+### Fixed
+- **Changing the language did not change the settings menu.** The menu's labels come from
+  the template handed to ModsSettingsAPI once at registration, so switching language
+  updated the config and the in-battle panel but left the menu itself rendering the old
+  strings — it looked like the setting did nothing. The subtree is now re-rendered via
+  MSA's `reloadModTemplate` the moment the language dropdown moves, so the menu switches
+  *before* Apply. Pre-existing since the menu was added; it only became visible now that
+  there is more than one language worth switching to.
+- The settings window is drawn in the *pending* language through a render-scoped override,
+  so the preview never touches the saved config — **Cancel** discards it with nothing to
+  undo, and the previewed language cannot leak into the battle panel or the log.
+- **… and the applied language now survives closing the window.** MSA builds the settings
+  window from the template it stored when the mod registered, overwriting only component
+  *values*; `reloadModTemplate` repaints the open window but deliberately does not update
+  that stored copy, and `setModTemplate` refuses to replace it at an unchanged
+  `settingsVersion` (its same-version label-refresh path is defeated by our translated
+  dropdown option labels, which register as a structure change). The menu therefore fell
+  back to the client's start-up language on the next open and stayed there across
+  restarts. SpotMeter now re-renders on `onWindowOpened`, so the menu always matches the
+  committed language.
+- **The in-battle panel footer was a hardcoded Polish literal**, shown to players in every
+  language ("PageDown - ukryj | chwyt: naglowek | strzalka: zwin"). It is now composed
+  from `_STRINGS` like the rest of the panel; the previously unused `battle_hide_hint` key
+  is wired up and two new keys carry the drag and collapse hints, so no language loses
+  information Polish players already had.
+- **Preset-editor edits could be written to the wrong vehicle class.** Cancelling the
+  settings window discarded the uncommitted `preset_class` on MSA's side but not ours, so
+  the module stayed pointed at the class the user had merely been previewing; the next
+  window's loadout edits were then merged into that stale class as well as the visible
+  one, silently changing an auto-pick preset the user never touched. The selection is now
+  reset to the committed class on close. Pre-existing, unrelated to the language work —
+  found by the pre-release audit.
+
+### Changed
+- Retargeted to **WoT 2.4.0.0**. `_MSA_SETTINGS_VERSION` bumped 9 → 11 so the settings
+  menu re-renders with the new language entries.
+- **The client log is now `game.log`, not `python.log`** — WoT 2.4.0.0 renamed it, and the
+  old `python.log` is left on disk un-updated, so reading it after the update shows
+  pre-update state and looks like the mod never loaded. Every doc, checklist and comment
+  that points at the log was updated; the historical changelog entries below still say
+  `python.log` because that is what the file was called at the time.
+- Dropped the deprecated `registerLiveSettingsChange(mode=...)` call in favour of
+  `fullsettings=False` (verified equivalent), with fallbacks for older menu builds — this
+  clears the deprecation warning SpotMeter was printing into the log on every startup.
+- The preflight i18n gate now checks **every** language against English (it only compared
+  EN/PL before) and asserts that `_LANGS`, the dropdown endonyms and the actual `_STRINGS`
+  blocks agree — a language can no longer be offered in the menu without strings behind it.
 
 ## [7.2.1] — 2026-08-24
 

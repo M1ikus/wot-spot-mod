@@ -1,6 +1,6 @@
 <!--
 Release listing texts for SpotMeter, per distribution channel.
-Content in the code blocks is the CURRENT (v7.2.1) copy - paste it straight in.
+Content in the code blocks is the CURRENT (v7.3.0) copy - paste it straight in.
 
 Channels:
   1. WG Mods portal (wgmods.net) - ENGLISH. Three fields with HARD char limits.
@@ -29,7 +29,7 @@ REQUIRES net.openwg.gameface (free, MIT; already shipped in common modpacks):
 - a mods-settings menu (Aslain's aslainMenu / izeberg's ModsSettingsAPI) is
   OPTIONAL - it only adds the in-garage settings page; the mod runs on JSON config
   + hotkeys without it.
-- requires WoT 2.3.1.3; no special load order.
+- requires WoT 2.4.0.0; no special load order.
 - coexists cleanly: own namespace, replaces no WG UI files, every game hook wraps
   the original, hotkeys are never consumed.
 
@@ -38,11 +38,13 @@ REQUIRES net.openwg.gameface (free, MIT; already shipped in common modpacks):
 ## Version changes  (max 1000 characters)
 
 ```
-v7.2.1 - for WoT 2.3.1.3.
+v7.3.0 - six new languages + WoT 2.4.0.0.
 
-Resave for the new client: rebuilt for WoT 2.3.1.3 (a minor patch over 2.3.1.2; no functional changes). The colour pickers, hover tooltips, in-battle panel and the whole spot-distance engine are unchanged.
+NEW: French, Spanish, German, Czech, Italian and Portuguese. SpotMeter now speaks eight languages (EN / PL / FR / ES / DE / CS / IT / PT) across the in-battle panel and every label and hover tooltip in the settings menu, using the game's own terminology. Pick one in the settings menu, or set "language" in spotmeter.json; "auto" follows your WoT client and now matches on the language-code prefix, so regional variants get their own language instead of English.
 
-Reminder (since v7.0.0): the in-battle panel is a Gameface overlay and REQUIRES net.openwg.gameface (free, MIT; already in common modpacks). The minimap circle and the hotkeys work even without it.
+Fixed: the settings menu now keeps the language you picked after you close the window, and the battle panel's footer is translated instead of always showing Polish.
+
+Rebuilt for WoT 2.4.0.0 - a major client branch change, so every game interface the mod hooks was re-verified against the new client. The spot-distance engine, circle and panel are unchanged.
 ```
 
 ## Mod description  (max 3000 characters)
@@ -74,7 +76,7 @@ USING WITH XVM
 If you use XVM's minimap, XVM owns the view-range-circle layer and repaints SpotMeter's circle in its own colour (often a constant cyan; you may see two similar circles). SpotMeter's is the one that CHANGES SIZE with your camo state (your live spot distance); XVM's is your static view range. Recolour or hide the circles in XVM's minimap.xc; SpotMeter's own colours apply when the XVM minimap isn't repainting them. The spot-distance readout is unaffected either way.
 
 LANGUAGE
-English and Polish, auto-detected from your game client.
+English, Polish, French, Spanish, German, Czech, Italian and Portuguese - both the panel and the whole settings menu, tooltips included. Auto-detected from your game client, or pick one in the settings menu / spotmeter.json.
 
 FAIR PLAY
 SpotMeter only computes values the client already has and shows the result geometrically. It does NOT reveal hidden enemies, automate aiming or movement, or read server-private data - the same category as the view-range circles already built into the game.
@@ -87,10 +89,10 @@ Hotkeys are on the numpad and work with NumLock on or off; everything is configu
 ```
 1. Install net.openwg.gameface (free; already in most modpacks, or from the OpenWG project). SpotMeter's panel needs it.
 
-2. Download spotmeter-v7.2.1.wotmod.
+2. Download spotmeter-v7.3.0.wotmod.
 
-3. Copy it into:  <WoT>\mods\2.3.1.3\
-   Example:  D:\Games\World_of_Tanks_EU\mods\2.3.1.3\
+3. Copy it into:  <WoT>\mods\2.4.0.0\
+   Example:  D:\Games\World_of_Tanks_EU\mods\2.4.0.0\
    (create the folder if it does not exist)
 
 4. Launch the game. On first launch it briefly restarts once to register the panel (net.openwg.gameface rebuilds its resource map) - this is normal. The minimap circle works right away; in battle, PageDown shows/hides the panel and you drag it by the header.
@@ -98,7 +100,7 @@ Hotkeys are on the numpad and work with NumLock on or off; everything is configu
 5. (Optional) Install a mods-settings menu (aslainMenu / ModsSettingsAPI) to configure in the garage, or edit:
    %APPDATA%\Wargaming.net\WorldOfTanks\mods\spotmeter\spotmeter.json
 
-To uninstall: delete the .wotmod from mods\2.3.1.3\. Requires WoT 2.3.1.3 + net.openwg.gameface.
+To uninstall: delete the .wotmod from mods\2.4.0.0\. Requires WoT 2.4.0.0 + net.openwg.gameface.
 ```
 
 # Aslain's modpack — Polish
@@ -109,13 +111,17 @@ limitu znakow - Aslain lubi zwiezle wpisy). Dwie formy do wyboru.
 ## Zmiany wersji — jedna linia (kompaktowy changelog Aslaina)
 
 ```
-SpotMeter v7.2.1 (WoT 2.3.1.3) — resave pod nowy klient: rebuild pod WoT 2.3.1.3 (drobny patch nad 2.3.1.2, bez zmian funkcjonalnych). Color-pickery, tooltipy, panel i cały silnik spot-distance bez zmian. (autor: ISEDR_Mikus)
+SpotMeter v7.3.0 (WoT 2.4.0.0) — NOWE: francuski, hiszpanski, niemiecki, czeski, wloski i portugalski. Mod ma teraz 8 jezykow (EN/PL/FR/ES/DE/CS/IT/PT) — panel bitewny oraz wszystkie etykiety i dymki w menu ustawien. "auto" idzie za jezykiem klienta (dopasowanie po prefiksie kodu). Poprawki: menu ustawien zachowuje wybrany jezyk po zamknieciu okna, a stopka panelu jest tlumaczona (byla na sztywno po polsku). Plus retarget pod WoT 2.4.0.0 — przy zmianie galezi major cala powierzchnia API WG uzywana przez mod zostala ponownie zweryfikowana w nowym kliencie. (autor: ISEDR_Mikus)
 ```
 
 ## Zmiany wersji — pełne
 
 ```
-SpotMeter v7.2.1 — pod WoT 2.3.1.3.
+SpotMeter v7.3.0 — pod WoT 2.4.0.0.
 
-Resave pod nowy klient — rebuild bez zmian funkcjonalnych pod WoT 2.3.1.3 (drobny patch nad 2.3.1.2, ta sama gałąź v2.3.1 — brak zmian w silniku / API). Color-pickery, tooltipy, panel bitewny i cały silnik spot-distance bez zmian.
+NOWE — sześć dodatkowych języków: francuski, hiszpański, niemiecki, czeski, włoski i portugalski. SpotMeter mówi teraz w ośmiu językach (EN / PL / FR / ES / DE / CS / IT / PT), i to w komplecie: panel bitewny oraz wszystkie etykiety i dymki podpowiedzi w menu ustawień modów. Słownictwo trzyma się oficjalnej terminologii WoT. Język ustawisz w menu ustawień (każdy widnieje pod własną nazwą) albo polem "language" w spotmeter.json; "auto" idzie za klientem gry i dopasowuje się teraz po prefiksie kodu języka, więc warianty regionalne trafiają na swój język zamiast spadać na angielski.
+
+Poprawki: menu ustawień zachowuje wybrany język po zamknięciu okna (wcześniej wracało do języka, w którym wystartował klient), a stopka panelu bitewnego jest tłumaczona — była zaszyta na sztywno po polsku dla wszystkich języków.
+
+Retarget pod WoT 2.4.0.0 — to zmiana gałęzi major (v2.3.1 → v2.4), więc przed buildem cała powierzchnia API WG, której mod dotyka (plugin minimapy i okrąg VIEW_RANGE_CIRCLES, matrix_factory, Avatar.shoot, klasy Wulf/Gameface, deskryptory itemów), została ponownie zweryfikowana wprost w skryptach nowego klienta — bez zmian. Silnik spot-distance, okrąg i panel działają jak dotychczas.
 ```

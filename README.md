@@ -1,8 +1,8 @@
 # SpotMeter — WoT minimap mod
 
-Dodaje na minimapie dodatkowy okrąg pokazujący odległość, z jakiej Twój czołg może zostać zauważony przez przeciwnika. Dochodzi przeciągalny **panel bitewny** (lista przeciwników + picker celu; **PageDown** chowa/pokazuje), **auto-dobieranie** celu z presetami per klasa, pełne **PL/EN** UI oraz **konfigurator w garażu** przez menu ustawień modów (ModsSettingsAPI / aslainMenu — opcjonalne; bez niego działa config `spotmeter.json`).
+Dodaje na minimapie dodatkowy okrąg pokazujący odległość, z jakiej Twój czołg może zostać zauważony przez przeciwnika. Dochodzi przeciągalny **panel bitewny** (lista przeciwników + picker celu; **PageDown** chowa/pokazuje), **auto-dobieranie** celu z presetami per klasa, UI w **ośmiu językach** (PL / EN / FR / ES / DE / CS / IT / PT) oraz **konfigurator w garażu** przez menu ustawień modów (ModsSettingsAPI / aslainMenu — opcjonalne; bez niego działa config `spotmeter.json`).
 
-> Build pod **WoT 2.3.1.3** · wersja moda **7.2.1**.
+> Build pod **WoT 2.4.0.0** · wersja moda **7.3.0**.
 
 ## Co automatycznie / co ręcznie
 
@@ -24,7 +24,9 @@ Granica jest prosta: wszystko co jest w **descriptorze pojazdu** (transmitowanym
 
 W praktyce: po wybraniu enemy pickerem, jego VR od razu zawiera Coated Optics + Stereoscope (jeśli są na tym czołgu — odczytane z descriptora). Toggle perków / consumables / dyrektyw / field-upgradów nakładasz tylko gdy zakładasz że enemy je faktycznie ma.
 
-> **Weryfikacja własnych field upgrades:** naciśnij **NumpadEnter** (status snapshot) — w `python.log` pojawi się m.in. linia `myVR: base=410m * factor=1.103` i `myCamo: base(...) + add=0.025`. Jeśli `factor>1.0` lub `add>0.0`, ulepszenia polowe są naliczone w descriptorze. (Mod **nigdy nie pisze na czat** — diagnostyka idzie wyłącznie do `python.log`.)
+> **Weryfikacja własnych field upgrades:** naciśnij **NumpadEnter** (status snapshot) — w `game.log` pojawi się m.in. linia `myVR: base=410m * factor=1.103` i `myCamo: base(...) + add=0.025`. Jeśli `factor>1.0` lub `add>0.0`, ulepszenia polowe są naliczone w descriptorze. (Mod **nigdy nie pisze na czat** — diagnostyka idzie wyłącznie do `game.log`.)
+
+> **Nazwa pliku logu:** od **WoT 2.4.0.0** to `game.log`. Na 2.3.x i starszych nazywał się `python.log` — stary plik zostaje na dysku i **przestaje być aktualizowany**, więc czytając go po aktualizacji zobaczysz stan sprzed niej (wygląda to jak „mod się nie załadował”). Sprawdź datę modyfikacji pliku.
 
 ## Panel SpotMeter (v7)
 
@@ -46,7 +48,9 @@ Stale widoczna lista przeciwników. Każdy wiersz: `[klasa] Nazwa xN  T<tier>  V
 - Numpad 5 czyści ręczny wybór (przy auto ON wraca do auto).
 
 ### Język (i18n)
-`language: "auto"` czyta język klienta WoT — `pl` → polski, cokolwiek innego → angielski. Wymuś przez `"pl"` / `"en"`.
+Osiem języków: **angielski, polski, francuski, hiszpański, niemiecki, czeski, włoski i portugalski** — obejmują zarówno panel bitewny, jak i wszystkie etykiety oraz dymki w menu ustawień modów.
+
+`language: "auto"` czyta język klienta WoT (dopasowanie po prefiksie kodu języka, więc warianty regionalne typu `es_ar` też trafiają na swój język; cokolwiek nierozpoznanego → angielski). Wymuś przez `"en"` / `"pl"` / `"fr"` / `"es"` / `"de"` / `"cs"` / `"it"` / `"pt"` albo z dropdowna **Język** w menu ustawień.
 
 ## Kolory okręgu
 
@@ -146,7 +150,7 @@ Server NIE wysyła `vehPostProgression` przeciwnika (jest to `MY_VEHICLE` scope)
 
 **Mechanika:** po wciśnięciu Numpad 0 (toggle ON), mod szuka czołgu po `shortName` w tabelce. Jeśli znajdzie, mnoży `base_vr` przez `(1 + %)` z capem 445m, **przed** dodaniem rations/perks/directives. Czołgi spoza tabelki = 0% (toggle nie robi nic). EBR 105 nie ma w post-progression żadnego upgradeu na VR, więc go w tabelce nie ma.
 
-**Dopisuj własne wpisy** — sprawdź `shortName` przez Numpad `*` (dump descryptora wybranego enemy do `python.log`), znajdź wpis i dodaj do tabelki w `spotmeter.json`. Np. dla czołgu z +2.5% upgradeu na VR: `"NazwaCzolgu": 0.025`.
+**Dopisuj własne wpisy** — sprawdź `shortName` przez Numpad `*` (dump descryptora wybranego enemy do `game.log`), znajdź wpis i dodaj do tabelki w `spotmeter.json`. Np. dla czołgu z +2.5% upgradeu na VR: `"NazwaCzolgu": 0.025`.
 
 > **Dlaczego BETA:** lista czołgów z VR upgrades w post-progression nie jest wyczerpująco udokumentowana publicznie, więc tabelka jest aktualnie bardzo skromna. Jeśli zauważysz zaniżony radius na konkretnym czołgu enemy, to znak że ma upgradeu na VR i trzeba go dopisać.
 
@@ -154,7 +158,7 @@ Server NIE wysyła `vehPostProgression` przeciwnika (jest to `MY_VEHICLE` scope)
 
 Pobierz `spotmeter-v<wersja>.zip` z [GitHub Releases](https://github.com/M1ikus/spotmeter/releases). W środku:
 
-- `spotmeter-v<wersja>.wotmod` → wrzuć do `<WoT>/mods/2.3.1.3/` (wymaga `net.openwg.gameface`)
+- `spotmeter-v<wersja>.wotmod` → wrzuć do `<WoT>/mods/2.4.0.0/` (wymaga `net.openwg.gameface`)
 - `spotmeter.json` (opcjonalny) → wrzuć do `<WoT>/mods/configs/`
 - `INSTALL.txt` — szczegółowa instrukcja krok po kroku
 
@@ -176,7 +180,7 @@ Gra automatycznie ładuje wszystkie `.wotmod` z `mods/<wersja>/` po starcie. Bez
 +-----+-----+-----+-----+
 
    PageDown = pokaż/ukryj panel bitewny
-   Mod NIGDY nie pisze na czat - snapshot (Enter) i dump (*) ida do python.log
+   Mod NIGDY nie pisze na czat - snapshot (Enter) i dump (*) ida do game.log
 ```
 
 | akcja | klawisz | config | default |
@@ -193,7 +197,7 @@ Gra automatycznie ładuje wszystkie `.wotmod` z `mods/<wersja>/` po starcie. Bez
 | toggle Directives | Numpad 1 | `pickerDirectivesKey` | OFF |
 | toggle Field Upgrades (BETA) | Numpad 0 | `pickerFieldUpgradesKey` | OFF |
 | **auto-dobieranie celu** | Numpad / | `autoPickToggleKey` | OFF |
-| status snapshot **do python.log** | NumpadEnter | `overlayPrintNowKey` | — |
+| status snapshot **do game.log** | NumpadEnter | `overlayPrintNowKey` | — |
 | dump descriptor enemy do logu | Numpad **\*** | `pickerDiagDumpKey` | — |
 | reload configu | NumpadPeriod | `reloadKey` | — |
 | **pokaż/ukryj panel bitewny** | **PageDown** | `panelToggleKey` | — |
@@ -230,7 +234,7 @@ Działa przy **NumLock włączonym i wyłączonym**. **PageDown** jest poza nump
 | `pickerAssumeStereoscope` | `true` | jeśli enemy ma lornetkę, zakłada że jest aktywna |
 | `pickerStereoscopeFallback` | `1.25` | mnożnik VR jeśli odczyt z descriptora padnie |
 | `pickerIncludeDeadEnemies` | `false` | czy uwzględniać martwych w cyklu |
-| `overlayEnabled` | `true` | włącza diagnostykę na żądanie do `python.log` (NumpadEnter snapshot, Numpad\* dump) — **mod nie pisze na czat** |
+| `overlayEnabled` | `true` | włącza diagnostykę na żądanie do `game.log` (NumpadEnter snapshot, Numpad\* dump) — **mod nie pisze na czat** |
 | `pickerNextKey` | `KEY_NUMPAD2` | następny przeciwnik |
 | `pickerPrevKey` | `KEY_NUMPAD8` | poprzedni przeciwnik |
 | `pickerClearKey` | `KEY_NUMPAD5` | wyczyść picker |
@@ -239,10 +243,10 @@ Działa przy **NumLock włączonym i wyłączonym**. **PageDown** jest poza nump
 | `pickerReconSitAwareKey` | `KEY_NUMPAD4` | toggle Recon + SitAware |
 | `pickerDirectivesKey` | `KEY_NUMPAD1` | toggle Directives |
 | `pickerFieldUpgradesKey` | `KEY_NUMPAD0` | toggle Field Upgrades (BETA) |
-| `pickerDiagDumpKey` | `KEY_NUMPADSTAR` | dump enemy descriptor + rozbicie VR do `python.log` |
-| `overlayPrintNowKey` | `KEY_NUMPADENTER` | status snapshot do `python.log` |
+| `pickerDiagDumpKey` | `KEY_NUMPADSTAR` | dump enemy descriptor + rozbicie VR do `game.log` |
+| `overlayPrintNowKey` | `KEY_NUMPADENTER` | status snapshot do `game.log` |
 | `reloadKey` | `KEY_NUMPADPERIOD` | reload configu |
-| `logCalcDetails` | `false` | wypisuje camo/radius/state do `python.log` |
+| `logCalcDetails` | `false` | wypisuje camo/radius/state do `game.log` |
 
 Nazwy klawiszy: nazwy z modułu `Keys` (np. `KEY_F8`, `KEY_F7`, `KEY_HOME`, `KEY_INSERT`). Pusty string = bez hotkeya.
 
@@ -250,7 +254,7 @@ Nazwy klawiszy: nazwy z modułu `Keys` (np. `KEY_F8`, `KEY_F7`, `KEY_HOME`, `KEY
 
 | pole | default | opis |
 |---|---|---|
-| `language` | `"auto"` | `auto` = język klienta WoT (`pl`→PL, reszta→EN); wymuś `"pl"` / `"en"` |
+| `language` | `"auto"` | `auto` = język klienta WoT (rozpoznaje `pl`/`fr`/`es`/`de`/`cs`/`it`/`pt`, reszta→EN); wymuś jednym z tych kodów |
 | `panelToggleKey` | `KEY_PGDN` | pokaż/ukryj panel bitewny |
 | `battlePanelEnabled` | `false` | widoczność panelu bitewnego na starcie (domyślnie ukryty; PageDown przywołuje) |
 | `battlePanelX/Y/W/H` | `10 / 400 / 320 / 380` | pozycja i rozmiar panelu bitewnego (przeciągalny, zapisuje się) |
@@ -311,6 +315,14 @@ W bitwie naciśnij `NumpadPeriod` (lub klawisz z `reloadKey`) — config wczytuj
 
 ## Roadmap
 
+### v7.3.0 — sześć nowych języków + WoT 2.4.0.0
+
+- **Sześć nowych języków interfejsu**: francuski, hiszpański, niemiecki, czeski, włoski i portugalski (obok EN/PL) — w panelu i w całym menu ustawień razem z dymkami. Słownictwo trzyma się oficjalnej terminologii WoT (*portée de vue* / *alcance de visión* / *Sichtweite* / *výhled*).
+- Zmiana języka **działa od razu** w otwartym menu i **zostaje** po zamknięciu okna oraz po restarcie klienta (MSA rysuje menu z szablonu zapisanego przy rejestracji — trzeba je przerysować przy każdym otwarciu okna).
+- `auto` dopasowuje język klienta **po prefiksie kodu**, więc warianty regionalne nie spadają już cicho na angielski; dropdown w menu pokazuje każdy język jego własną nazwą.
+- Retarget pod **WoT 2.4.0.0** — pierwsza od dawna zmiana gałęzi **major** (`v2.3.1` → `v2.4`), więc cała powierzchnia API WG, której mod dotyka, została ponownie zweryfikowana wprost w `scripts.pkg` nowego klienta przed buildem (bez zmian).
+- Bramka preflight sprawdza teraz **każdy** język względem angielskiego i pilnuje zgodności `_LANGS` / nazw w dropdownie / bloków `_STRINGS`.
+
 ### v7.2.1 — resave pod WoT 2.3.1.3
 
 - Rebuild bez zmian funkcjonalnych pod nowy klient (drobny patch nad 2.3.1.2 — ta sama gałąź v2.3.1, brak zmian w silniku / API).
@@ -339,7 +351,7 @@ W bitwie naciśnij `NumpadPeriod` (lub klawisz z `reloadKey`) — config wczytuj
 - **Konfigurator w garażu** przez menu ustawień modów (aslainMenu / ModsSettingsAPI — opcjonalne): widoczność panelu, loadout na start, presety auto-dobierania per klasa (dropdown klas), pełna klawiszologia; zmiany na żywo + zapis do `spotmeter.json`
 - **Panel garażowy usunięty** — ustawienia są w konfiguratorze; z nim zniknął cały watcher okien/route'ów garażu (najbardziej kruchy kod moda)
 - **Panel bitewny domyślnie ukryty** (PageDown przywołuje); wybór ukrycia trwały między bitwami
-- **Mod NIGDY nie pisze na czat** — diagnostyka na żądanie (NumpadEnter snapshot, Numpad\* dump) idzie do `python.log`; live-mode (Numpad9) usunięty
+- **Mod NIGDY nie pisze na czat** — diagnostyka na żądanie (NumpadEnter snapshot, Numpad\* dump) idzie do `game.log`; live-mode (Numpad9) usunięty
 - **Config w AppData** — przeżywa reinstalacje paczki; stary config migrowany automatycznie
 - `showMinimapCircle` — tryb „sam panel" bez okręgu na minimapie
 - **Fix koegzystencji GUIFlash** — nasz SWF był bajt-w-bajt kopią `gambiter.guiflash` (te same klasy `net.gambiter.*`) i psuł zapis pozycji innych modów; teraz używamy współdzielonego `gambiter.guiflash` gdy jest, a bundled tylko w fallbacku
@@ -353,7 +365,7 @@ W bitwie naciśnij `NumpadPeriod` (lub klawisz z `reloadKey`) — config wczytuj
 - **Optyka / Wentylacja / CVS jako cyklowane poziomy** (Numpad 6 / + / −) — serwer 2.x nie wysyła `optionalDevices` przeciwnika
 - **BIA wydzielone** na Numpad 3 (Recon+SitAware zostaje na Numpad 4)
 - **Auto-hide panelu** — TAB/N w bitwie + okna WG w garażu
-- **i18n** — angielski + polski, auto-detekcja z języka klienta
+- **i18n** — angielski, polski, francuski, hiszpański, niemiecki, czeski, włoski i portugalski (v7.3), auto-detekcja z języka klienta
 - Fork GUIFlash (`spotmeter_gf`) — własny namespace, koegzystuje z `gambiter.guiflash`
 
 ### v5.4 — field upgrades BETA ✅
@@ -376,7 +388,7 @@ W bitwie naciśnij `NumpadPeriod` (lub klawisz z `reloadKey`) — config wczytuj
 - 4 toggle'e dla VR enemy: Rations / Crew Perks bundle / Directives / Field Upgrades
 - Overlay tekstu nad minimapą (chat-line w battle-message-feed) *(usunięty w v6.1 — mod nie pisze na czat)*
 - NumpadEnter — pełen status snapshot
-- Numpad `*` — dump descryptora enemy do `python.log`
+- Numpad `*` — dump descryptora enemy do `game.log`
 - NumpadPeriod — hot-reload configu
 
 ### v4.5 — binoculars in picker + camo net for own tank ✅
@@ -428,7 +440,7 @@ Wersja jest czytana z `packaging/meta.xml` — zaktualizuj tam przed kolejnym bu
 ### Hot-test podczas devu
 
 ```sh
-cp build/mod_spotmeter.pyc "<WoT>/res_mods/2.3.1.3/scripts/client/gui/mods/"
+cp build/mod_spotmeter.pyc "<WoT>/res_mods/2.4.0.0/scripts/client/gui/mods/"
 cp src/spotmeter.json "<WoT>/mods/configs/"
 ```
 

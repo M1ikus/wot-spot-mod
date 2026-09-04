@@ -25,8 +25,11 @@ One command. Exit 0 = all hard checks pass. It performs:
   `mods/spotmeter/panelLayout` with `impl=gameface` and a `coui://` path that
   resolves to the `SpotMeterPanel.html` actually bundled.
 - **config parity**: `DEFAULT_CONFIG` keys == `spotmeter.json` keys.
-- **i18n parity**: `_STRINGS['en']` and `['pl']` have identical keys, and every
-  `_t('...')` literal is defined.
+- **i18n parity**: every language in `_STRINGS` (en / pl / fr / es / de / cs /
+  it / pt) defines
+  exactly the same keys as English, every `_t('...')` literal is defined, and
+  `_LANGS`, the dropdown endonyms and the `_STRINGS` blocks all agree — so the
+  menu can never offer a language with no strings behind it.
 - **version consistency**: `MOD_VERSION` == `meta.xml` == built filename; the
   version appears in README / CHANGELOG / PORTAL_LISTING / INSTALL.
 - **portal limits**: the three WG blocks are ≤ 1000 / 3000 / 1000 chars.
@@ -45,7 +48,7 @@ Fix every `[FAIL]` before continuing. Warnings are judgement calls.
 
 ## 2. Manual / in-game (one quick battle + a garage visit)
 
-The author runs these in a clean WoT 2.3.1.3 with **only** SpotMeter **plus its
+The author runs these in a clean WoT 2.4.0.0 with **only** SpotMeter **plus its
 required `net.openwg.gameface` library** installed (the panel is a Gameface
 overlay and will not appear without it).
 
@@ -53,7 +56,7 @@ overlay and will not appear without it).
       the mod, the client restarts itself once while `net.openwg.gameface`
       rebuilds its resource map. This is expected — verify it happens **once**
       and not on every subsequent launch.
-- [ ] **Loads**: `python.log` has `SpotMeter: initialised (version=7.2.1, ...)`
+- [ ] **Loads**: `game.log` has `SpotMeter: initialised (version=7.3.0, ...)`
       and **no** traceback at startup, and **no** WARNING/ERROR lines for benign
       status (module loaded / init / panel backend are all INFO now).
 - [ ] **Minimap circle** appears in battle and recolours: red moving → green
@@ -79,7 +82,7 @@ overlay and will not appear without it).
       preset.
 - [ ] **Never writes to chat**: the mod posts **nothing** to game chat, ever —
       no picker/toggle confirmations, no status block, no hints. NumpadEnter
-      logs the status block to `python.log`; NumpadStar logs the descriptor +
+      logs the status block to `game.log`; NumpadStar logs the descriptor +
       VR breakdown there too. (Numpad9 / live mode no longer exists.)
 - [ ] **No log spam** during a battle (no per-tick lines unless `logCalcDetails`
       is on; on-demand NumpadEnter / NumpadStar entries only when pressed).
@@ -89,8 +92,23 @@ overlay and will not appear without it).
       auto-pick preset being edited; hotkey buttons show compact names
       (`NUM2`, not a clipped `NUMPAD`). Without any menu installed, the mod must
       still load and run normally.
+- [ ] **Languages (v7.3)**: the dropdown lists Auto / English / Polski /
+      Français / Español / Deutsch / Čeština / Italiano / Português. Switch
+      through several and confirm the menu labels AND hover tooltips change,
+      that the in-battle panel (incl. its footer line) changes too, and that
+      **accents render as accents** — both Latin-1 (é à ç ñ ä ö ü ß ã õ) and
+      **Latin Extended-A for Czech (ě š č ř ž ů)**, which is a different glyph
+      range from the rest. Not provable offline. If glyphs are wrong it is the
+      Scaleform menu font, not the panel (the panel is HTML and safe).
+- [ ] **Language persists**: after changing it, CLOSE and re-open the settings
+      window — it must stay in the new language (it used to revert), and the
+      same after a client restart, with no MSA "settingsVersion was not
+      bumped" warning in `game.log`.
+- [ ] **Preset class after Cancel**: switch 'Preset for class' to another
+      class, press Cancel, re-open, edit the preset shown — only the visible
+      class may change in `spotmeter.json`.
 - [ ] **No-menu path**: with **no** mods-settings menu installed, the startup
-      `python.log` line names the exact config path; the mod loads and runs
+      `game.log` line names the exact config path; the mod loads and runs
       normally (no chat hint — chat is never used).
 - [ ] **Config location**: confirm `spotmeter.json` is created/updated under
       `%APPDATA%\Wargaming.net\WorldOfTanks\mods\spotmeter\`; an existing old
@@ -104,11 +122,11 @@ overlay and will not appear without it).
 
 ## 3. Release steps (after both sections are green)
 
-1. Move the `CHANGELOG.md` `[7.2.1]` entry from *Unreleased* to a dated release.
+1. Move the `CHANGELOG.md` `[7.3.0]` entry from *Unreleased* to a dated release.
 2. Commit (working tree clean → re-run preflight to confirm).
-3. `git tag v7.2.1` and push the tag.
+3. `git tag v7.3.0` and push the tag.
 4. Build the final artifact from the tagged tree; create the GitHub release and
-   attach `dist/spotmeter-v7.2.1.wotmod` (+ the `.zip` bundle).
+   attach `dist/spotmeter-v7.3.0.wotmod` (+ the `.zip` bundle).
 5. Paste the PORTAL_LISTING blocks: EN (version changes / description /
    installation) to wgmods; PL (one-line or full) to Aslain. **Call out the new
    `net.openwg.gameface` requirement** in the note to Aslain.

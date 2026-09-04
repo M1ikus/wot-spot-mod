@@ -2,7 +2,7 @@ SpotMeter — instalacja
 =======================
 
 Wersja: {{VERSION}}
-Wersja gry WoT: 2.3.1.3  (sprawdz w ~/version.xml jesli inna)
+Wersja gry WoT: 2.4.0.0  (sprawdz w ~/version.xml jesli inna)
 Pythona w grze: 2.7  (Wargaming nadal trzyma sie tej wersji)
 
 Co potrzeba:
@@ -18,12 +18,12 @@ Najpierw upewnij sie, ze masz net.openwg.gameface (panel jej wymaga; w
 wiekszosci paczek modow jest domyslnie).
 
 Skopiuj  spotmeter-v{{VERSION}}.wotmod
-Do       <katalog gry>\mods\2.3.1.3\
+Do       <katalog gry>\mods\2.4.0.0\
 
 Przyklad sciezki:
-   D:\Gry\World_of_Tanks_EU\mods\2.3.1.3\spotmeter-v{{VERSION}}.wotmod
+   D:\Gry\World_of_Tanks_EU\mods\2.4.0.0\spotmeter-v{{VERSION}}.wotmod
 
-Jesli folder mods\2.3.1.3 nie istnieje, gra go zrobi po pierwszym uruchomieniu.
+Jesli folder mods\2.4.0.0 nie istnieje, gra go zrobi po pierwszym uruchomieniu.
 
 Game auto-laduje wszystkie .wotmod z tego katalogu po starcie. Przy PIERWSZYM
 uruchomieniu gra raz sie zrestartuje, zeby zarejestrowac panel (net.openwg.gameface
@@ -79,9 +79,9 @@ Hotkeys (numpad - dziala przy NumLock WL i WYL):
     /      - toggle auto-pick (default OFF) - najblizszy przeciwnik jako cel.
              Wlaczenie stosuje preset per-klasa; reczny wybor 2/8 nadpisuje auto.
 
-  DIAGNOSTYKA (v6.1 - mod NIGDY nie pisze na czat; wszystko idzie do python.log):
-    Enter  - jednorazowy snapshot blocku 4 wartosci do python.log
-    *      - dump descriptora wybranego enemy + rozbicie VR do python.log
+  DIAGNOSTYKA (v6.1 - mod NIGDY nie pisze na czat; wszystko idzie do game.log):
+    Enter  - jednorazowy snapshot blocku 4 wartosci do game.log
+    *      - dump descriptora wybranego enemy + rozbicie VR do game.log
     .      - reload configu
     (Numpad9 / live mode usuniete - byly tylko na czacie.)
 
@@ -96,10 +96,12 @@ Hotkeys (numpad - dziala przy NumLock WL i WYL):
     napisy, zielone wlaczone opcje. Zadnego SWF-a (koniec kolizji GUIFlash).
     Ustawienia tez w konfiguratorze (menu ustawien modow, patrz nizej).
 
-  JEZYK: pole "language" w configu - "auto" (jezyk klienta WoT, pl->PL,
-  reszta->EN), albo wymus "pl" / "en".
+  JEZYK: pole "language" w configu - "auto" (jezyk klienta WoT: rozpoznaje
+  pl / fr / es / de / cs / it / pt, reszta->EN), albo wymus jeden z kodow:
+  "en" / "pl" / "fr" / "es" / "de" / "cs" / "it" / "pt".
+  To samo da sie ustawic z menu ustawien modow (dropdown "Jezyk").
 
-  CO POKAZUJE BLOK STATUSU (Enter -> python.log):
+  CO POKAZUJE BLOK STATUSU (Enter -> game.log):
     SpotMeter status block:
     vs VR=445m (own)
       ruch:         287m
@@ -111,7 +113,7 @@ Hotkeys (numpad - dziala przy NumLock WL i WYL):
     own:    base_vr=410m * factor=1.103, camo_add=0.025, auto=off
 
     Wszystkie 4 wartosci VR-spot na raz. Strzalka pokazuje aktualny stan.
-    Blok trafia do python.log po wcisnieciu Enter (mod nie pisze na czat).
+    Blok trafia do game.log po wcisnieciu Enter (mod nie pisze na czat).
 
 
 CO JEST AUTOMATYCZNE (auto-czytane z descriptora wroga)
@@ -151,10 +153,12 @@ Dopisuj wlasne wpisy po shortName (sprawdzisz przez Numpad * - dump descryptora)
 
 WERYFIKACJA / DEBUG
 -------------------
-Logi: <katalog gry>\python.log
+Logi: <katalog gry>\game.log
+(WoT 2.4.0.0 przemianowal ten plik - na 2.3.x i starszych nazywal sie
+ python.log, ktory zostaje na dysku nieaktualizowany. Sprawdz date pliku.)
 
 Po starcie gry powinien byc tam wpis:
-   SpotMeter: initialised (version=7.2.1, ...)
+   SpotMeter: initialised (version=7.3.0, ...)
 
 Jesli nie ma — mod sie nie zaladowal. Najczestsze przyczyny:
 - zla wersja gry (sprawdz numer w sciezce mods\<wersja>\)
@@ -168,7 +172,7 @@ co tick — w logu beda linie:
 
 JAK ODINSTALOWAC
 -----------------
-Usun spotmeter-v{{VERSION}}.wotmod z mods\2.3.1.3\.
+Usun spotmeter-v{{VERSION}}.wotmod z mods\2.4.0.0\.
 (Config w %APPDATA%\Wargaming.net\WorldOfTanks\mods\spotmeter\ mozna
 zostawic albo skasowac.)
 

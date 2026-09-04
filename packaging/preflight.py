@@ -86,6 +86,20 @@ def _str_value(node):
     return None
 
 
+def _str_tuple(node):
+    """List of string literals from a tuple/list literal, else None. Handles
+    `('a',) + OTHER` only for the plain-literal part it can see."""
+    if not isinstance(node, (ast.Tuple, ast.List)):
+        return None
+    out = []
+    for el in node.elts:
+        v = _str_value(el)
+        if v is None:
+            return None
+        out.append(v)
+    return out
+
+
 def _read(path):
     with io.open(path, 'r', encoding='utf-8') as fh:
         return fh.read()
@@ -196,18 +210,48 @@ def check_i18n():
     langs = {}
     for k, v in zip(strings.keys, strings.values):
         lang = _str_value(k)
-        if lang in ('en', 'pl') and isinstance(v, ast.Dict):
+        if lang and isinstance(v, ast.Dict):
             langs[lang] = set(filter(None, (_str_value(kk) for kk in v.keys)))
-    if 'en' not in langs or 'pl' not in langs:
-        fail('i18n-parity', 'could not extract en/pl from _STRINGS')
+    if 'en' not in langs:
+        fail('i18n-parity', "could not extract _STRINGS['en']")
         return
-    miss_pl = langs['en'] - langs['pl']
-    miss_en = langs['pl'] - langs['en']
-    if miss_pl or miss_en:
-        fail('i18n-parity', 'EN/PL key mismatch - missing in pl: %s ; missing in en: %s'
-             % (sorted(miss_pl) or 'none', sorted(miss_en) or 'none'))
+    # EN is the reference: every other language must define exactly the same
+    # keys (a missing key silently falls back to English at runtime, an extra
+    # one is dead weight / a typo).
+    problems = []
+    for lang in sorted(langs):
+        if lang == 'en':
+            continue
+        missing = langs['en'] - langs[lang]
+        extra = langs[lang] - langs['en']
+        if missing or extra:
+            problems.append('%s: missing %s ; extra %s'
+                            % (lang, sorted(missing) or 'none',
+                               sorted(extra) or 'none'))
+    if problems:
+        fail('i18n-parity', 'key mismatch vs EN - ' + ' | '.join(problems))
     else:
-        ok('i18n-parity', 'EN/PL string keys match (%d each)' % len(langs['en']))
+        ok('i18n-parity', '%s string keys all match EN (%d each)'
+           % ('/'.join(sorted(langs)).upper(), len(langs['en'])))
+
+    # The declared language list, the dropdown endonyms and the actual _STRINGS
+    # blocks must agree, or the menu offers a language that has no strings.
+    declared = _str_tuple(assigns.get('_LANGS'))
+    names = _str_tuple(assigns.get('_MSA_LANG_NAMES'))
+    if declared is None or names is None:
+        fail('i18n-langs', 'could not read _LANGS / _MSA_LANG_NAMES')
+    elif len(declared) != len(names):
+        fail('i18n-langs', '_LANGS (%d) and _MSA_LANG_NAMES (%d) differ in length'
+             % (len(declared), len(names)))
+    elif set(declared) != set(langs):
+        fail('i18n-langs', '_LANGS %s != _STRINGS languages %s'
+             % (sorted(declared), sorted(langs)))
+    elif declared[0] != 'en':
+        fail('i18n-langs', "_LANGS must start with 'en' (the fallback), got %r"
+             % (declared[0],))
+    else:
+        ok('i18n-langs', '_LANGS == _STRINGS langs == %d dropdown names (%s)'
+           % (len(names), ', '.join(declared)))
     # every _t('literal') must exist in EN
     used = set()
     for node in ast.walk(tree):

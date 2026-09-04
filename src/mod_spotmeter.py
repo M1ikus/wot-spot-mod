@@ -6,7 +6,7 @@
 # Works alongside the game's existing view-range circles (does not replace them).
 #
 # Loader entry: scripts/client/gui/mods/mod_spotmeter.pyc
-# Game version: World of Tanks 2.3.1.3 (Python 2.7 bytecode)
+# Game version: World of Tanks 2.4.0.0 (Python 2.7 bytecode)
 import json
 import logging
 import os
@@ -20,10 +20,10 @@ from gui.battle_control import matrix_factory
 
 _logger = logging.getLogger('SpotMeter')
 
-# WARNING-level so the line shows up in python.log even if the user's logging
+# WARNING-level so the line shows up in game.log even if the user's logging
 # level is filtering INFO out. This proves the mod was at least imported by
 # the loader; if you don't see this line, the .wotmod isn't being picked up.
-MOD_VERSION = '7.2.1'
+MOD_VERSION = '7.3.0'
 # Short "major.minor" form shown in panel titles ("6.0.0" -> "6.0"); the
 # full MOD_VERSION still drives logs / version reporting / meta.xml. Bumping
 # the patch (6.0.1) keeps the panel at "6.0"; a minor bump (6.1.0) -> "6.1".
@@ -33,30 +33,73 @@ _logger.info('SpotMeter: module loaded (version=%s)', MOD_VERSION)
 
 
 # ---------------------------------------------------------------------------
-# i18n: UI strings in English (default) + Polish, auto-picked from the WoT
-# client language via helpers.getClientLanguage(): a 'pl' client gets Polish,
-# anything else English. Override with "language": "pl"/"en"/"auto" in config.
+# i18n: UI strings in English (default) plus Polish, French, Spanish, German,
+# Czech, Italian and Portuguese - auto-picked from the WoT client language via
+# helpers.getClientLanguage(). Override with "language" in the config, using
+# any code in _LANGS below (or "auto").
+#
+# Non-ASCII: every language except EN/PL carries its real accents as UTF-8
+# *byte* literals (this
+# file is utf-8, see the coding line). Verified to survive both output paths -
+# json.dumps() escapes utf-8 str to \uXXXX for the Gameface panel, and the MSA
+# menu hands the bytes to Scaleform exactly like WG's own utf-8 localization.
+# Do NOT switch these to u'' literals: str(u'...e-acute') raises
+# UnicodeEncodeError, and mixing unicode with a utf-8 byte fallback in one
+# '%s' format (which _msa_tip does) raises UnicodeDecodeError.
+# PL stays ASCII-only - a deliberate long-standing choice, left as is. (Czech
+# proves the font is not the reason: cs ships full Latin Extended-A diacritics,
+# the same range as Polish, and WoT ships no per-language font override for
+# either - see res/gui/flash/fontconfig.xml.)
 # ---------------------------------------------------------------------------
 _LANG = None
+
+# Supported UI languages. Order matters: it drives the settings-menu dropdown
+# (index 0 = 'auto', then these) and the client-language prefix match below.
+_LANGS = ('en', 'pl', 'fr', 'es', 'de', 'cs', 'it', 'pt')
+
+# Set ONLY while rendering a settings-menu template, so the menu can be drawn
+# in a language the user picked but has not Applied yet (see
+# _msa_reload_template). It never touches _LANG or _CFG, so Cancel needs no
+# undo - the override is gone the moment the template is built.
+_LANG_OVERRIDE = None
+
+
+def _client_lang():
+    """The language the WoT client itself runs in, mapped onto _LANGS."""
+    try:
+        from helpers import getClientLanguage
+        code = (getClientLanguage() or '').lower()
+    except Exception:
+        return 'en'
+    # WoT's LANGUAGE_CODE is a bare two-letter code ('pl', 'fr', 'es', 'de');
+    # match on the prefix so a regional variant ('es_ar', 'de_at', ...) still
+    # lands on its language instead of silently falling back to English.
+    for lang in _LANGS:
+        if code.startswith(lang):
+            return lang
+    return 'en'
 
 
 def _detect_lang():
     forced = (_CFG.get('language') or 'auto').lower()
-    if forced in ('pl', 'en'):
-        return forced
-    try:
-        from helpers import getClientLanguage
-        return 'pl' if (getClientLanguage() or '').lower() == 'pl' else 'en'
-    except Exception:
-        return 'en'
+    return forced if forced in _LANGS else _client_lang()
+
+
+def _cur_lang():
+    """Language to render in right now: the settings-menu preview override if
+    one is active, otherwise the configured/detected one (cached in _LANG)."""
+    global _LANG
+    if _LANG_OVERRIDE is not None:
+        return _LANG_OVERRIDE
+    if _LANG is None:
+        _LANG = _detect_lang()
+    return _LANG
 
 
 def _t(key):
-    """UI string for `key` in the detected language (English fallback)."""
-    global _LANG
-    if _LANG is None:
-        _LANG = _detect_lang()
-    return (_STRINGS.get(_LANG, _STRINGS['en']).get(key)
+    """UI string for `key` in the current language (English fallback)."""
+    lang = _cur_lang()
+    return (_STRINGS.get(lang, _STRINGS['en']).get(key)
             or _STRINGS['en'].get(key)
             or key)
 
@@ -71,11 +114,9 @@ def _msa_tip(base_key):
     (verified against izeberg's ComponentsFactory.as + the templates example).
     Header = the control's own label; body = the tip text. Returns None when no
     tip is defined, so builders can pass tooltip=_msa_tip(...) unconditionally."""
-    global _LANG
-    if _LANG is None:
-        _LANG = _detect_lang()
+    lang = _cur_lang()
     tkey = base_key + '_tip'
-    body = (_STRINGS.get(_LANG, _STRINGS['en']).get(tkey)
+    body = (_STRINGS.get(lang, _STRINGS['en']).get(tkey)
             or _STRINGS['en'].get(tkey))
     if not body:
         return None
@@ -143,7 +184,7 @@ _STRINGS = {
         'msa_preset_df_tip': 'The enemy loadout auto-pick assumes for all non-light classes.',
         'msa_circle_tip': 'Draw SpotMeter\'s spot-distance circle on the minimap (how far you can currently be seen). Off = hide it. Note: with XVM\'s minimap, XVM controls the circle colour.',
         'msa_alpha_tip': 'Opacity of the minimap circle, 10-100%. Lower = more see-through.',
-        'msa_language_tip': 'UI language for the panel and this menu. Auto = follow the game client (Polish -> PL, everything else -> EN).',
+        'msa_language_tip': 'UI language for the panel and this menu. Auto = follow the game client (PL / FR / ES / DE / CS / IT / PT are recognised, everything else falls back to EN).',
         'msa_hotkey_tip': 'Show or hide the in-battle picker panel. Default PageDown - the only way to summon it when the panel starts hidden.',
         'msa_colors_label': 'Circle colours',
         'msa_colors_label_tip': 'Colour of the minimap spot-distance circle in each state. NOTE: while XVM\'s minimap is active, XVM repaints the circle in its own colour and these settings are ignored - they apply when you are not running the XVM minimap.',
@@ -162,6 +203,7 @@ _STRINGS = {
         'battle_target': 'Target:', 'battle_target_hint': '(Numpad 2/8 or click the list)',
         'battle_auto_hint': 'click / Numpad /',
         'battle_hide_hint': 'Press PgDn to hide panel',
+        'battle_drag_hint': 'drag: header', 'battle_collapse_hint': 'arrow: collapse',
         'battle_target_own': 'own',
     },
     'pl': {
@@ -223,7 +265,7 @@ _STRINGS = {
         'msa_preset_df_tip': 'Loadout wroga zakladany dla wszystkich klas poza lekkimi.',
         'msa_circle_tip': 'Rysuj okrag dystansu wykrycia SpotMetera na minimapie (z ilu metrow aktualnie Cie widac). Wyl = ukryj. Uwaga: z minimapa XVM to XVM decyduje o kolorze okregu.',
         'msa_alpha_tip': 'Przezroczystosc okregu na minimapie, 10-100%. Nizej = bardziej przezroczysty.',
-        'msa_language_tip': 'Jezyk interfejsu panelu i tego menu. Auto = wg klienta gry (polski -> PL, reszta -> EN).',
+        'msa_language_tip': 'Jezyk interfejsu panelu i tego menu. Auto = wg klienta gry (rozpoznaje PL / FR / ES / DE / CS / IT / PT, reszta -> EN).',
         'msa_hotkey_tip': 'Pokaz lub ukryj panel wyboru celu w bitwie. Domyslnie PageDown - jedyny sposob, zeby przywolac panel, gdy startuje ukryty.',
         'msa_colors_label': 'Kolory okregu',
         'msa_colors_label_tip': 'Kolor okregu dystansu wykrycia na minimapie dla kazdego stanu. UWAGA: przy aktywnej minimapie XVM to XVM przemalowuje okrag swoim kolorem i te ustawienia sa ignorowane - dzialaja, gdy nie uzywasz minimapy XVM.',
@@ -242,7 +284,531 @@ _STRINGS = {
         'battle_target': 'Cel:', 'battle_target_hint': '(Numpad 2/8 lub klik na liscie)',
         'battle_auto_hint': 'klik / Numpad /',
         'battle_hide_hint': 'Nacisnij PgDn zeby ukryc panel',
+        'battle_drag_hint': 'chwyt: naglowek', 'battle_collapse_hint': 'strzalka: zwin',
         'battle_target_own': 'wlasny',
+    },
+    # FR/ES/DE (v7.3): WoT ships official clients in all three, so the wording
+    # follows WG's own in-game terminology (portee de vue / alcance de vision /
+    # Sichtweite, Freres d'armes / Hermanos de armas / Waffenbruder, ...).
+    # Accents are real UTF-8 bytes - see the encoding note above _detect_lang.
+    'fr': {
+        'msa_battle_panel': 'Panneau de combat visible au départ',
+        'msa_autohide': 'Masquer le panneau si TAB / N est maintenu',
+        'msa_group_tanks': 'Grouper les chars ennemis identiques',
+        'msa_circle': 'Cercle de distance de détection (minicarte)',
+        'msa_alpha': 'Opacité du cercle',
+        'msa_hotkey': 'Touche afficher/masquer le panneau (combat)',
+        'msa_language': 'Langue',
+        'msa_lang_auto': 'Auto (client du jeu)',
+        'msa_defaults_label': 'Équipement supposé au début du combat :',
+        'msa_def_rations': 'Rations de combat',
+        'msa_def_BIA': "Frères d'armes",
+        'msa_def_reconSitAware': 'Reconnaissance + Vigilance',
+        'msa_def_directives': 'Directives sur équipement',
+        'msa_def_fieldUpgrades': 'Améliorations de terrain (portée, BÊTA)',
+        'msa_def_autopick': "Ciblage auto de l'ennemi le plus proche",
+        'msa_def_optics': "Niveau d'optique",
+        'msa_def_vents': 'Niveau de ventilation',
+        'msa_def_cvs': 'CVS ennemi',
+        'msa_preset_lt': 'Préréglage AUTO - chars légers :',
+        'msa_preset_df': 'Préréglage AUTO - autres classes :',
+        'msa_preset_class': 'Préréglage pour la classe',
+        'msa_preset_edit': 'Préréglage de classe :',
+        'msa_cls_lt': 'Chars légers',
+        'msa_cls_mt': 'Chars moyens',
+        'msa_cls_ht': 'Chars lourds',
+        'msa_cls_td': 'Chasseurs de chars',
+        'msa_cls_spg': 'Artillerie (SPG)',
+        'msa_hotkeys_label': 'Raccourcis :',
+        'msa_hk_next': 'Ennemi suivant',
+        'msa_hk_prev': 'Ennemi précédent',
+        'msa_hk_clear': 'Effacer la sélection',
+        'msa_hk_autopick': 'Ciblage auto activé/désactivé',
+        'msa_hk_optics': "Faire défiler le niveau d'optique",
+        'msa_hk_vents': 'Faire défiler le niveau de ventilation',
+        'msa_hk_cvs': 'Faire défiler le CVS ennemi',
+        'msa_hk_dump': 'Exporter les données ennemies dans le journal',
+        'msa_hk_snapshot': 'Instantané de distance dans le journal',
+        'msa_hk_reload': 'Recharger le fichier de configuration',
+        # --- infobulles (v7.1) ---
+        'msa_battle_panel_tip': "Afficher automatiquement le panneau de ciblage au début du combat. Désactivé = masqué ; PageDown l'appelle quand même en combat.",
+        'msa_group_tanks_tip': 'Regrouper les chars ennemis identiques en une seule ligne et un seul arrêt Pavé num. 2/8 (même modèle = même portée de vue = même cercle). Désactivé = un ennemi par ligne.',
+        'msa_autohide_tip': 'Masquer le panneau tant que vous maintenez une touche de tableau des scores (TAB / N) pour ne pas cacher les statistiques ; il revient au relâchement.',
+        'msa_defaults_label_tip': "Le serveur masque les compétences d'équipage et l'équipement ennemis, donc SpotMeter suppose cet équipement pour dimensionner le cercle. Réglez-le selon l'équipement que vous attendez chez un ennemi typique.",
+        'msa_def_rations_tip': "Supposer que l'ennemi utilise des rations de combat (+4,30 % de portée de vue). Activé par défaut - la plupart des joueurs en utilisent.",
+        'msa_def_BIA_tip': "Supposer que l'équipage ennemi a Frères d'armes (+2,53 % de portée de vue). Activé par défaut.",
+        'msa_def_reconSitAware_tip': "Supposer que l'ennemi a Reconnaissance + Vigilance (+7,39 % de portée de vue au total). Activé par défaut.",
+        'msa_def_directives_tip': "Supposer une directive de portée de vue sur l'équipement ennemi (x1,025 sur le matériel détecté). Désactivé par défaut - moins courant.",
+        'msa_def_fieldUpgrades_tip': "Supposer une amélioration de terrain de portée de vue (table par char dans spotmeter.json). BÊTA, désactivé par défaut - le serveur ne l'envoie pas, c'est donc une estimation.",
+        'msa_def_optics_tip': "Optique ennemie supposée - plus d'optique = plus de portée de vue ennemie. DÉS. / de base +10 % / en emplacement +11,5 % / de bons +12,5 % / de luxe +13,5 %.",
+        'msa_def_vents_tip': "Ventilation ennemie supposée - elle amplifie les bonus d'équipage ci-dessus (rations / frères d'armes / reconnaissance). DÉS. / +5 % / +6,25 % / +7,5 % / +8,5 %.",
+        'msa_def_cvs_tip': "CVS ennemi supposé (système de vision du commandant) - il réduit VOTRE camouflage en mouvement, vous êtes donc repéré de plus loin en roulant. DÉS. / de base -10 % / en emplacement -12,5 %.",
+        'msa_def_autopick_tip': "Cibler automatiquement l'ennemi le plus proche et dimensionner le cercle sur sa portée de vue, avec mise à jour quand il se déplace. Une sélection manuelle (Pavé num. 2/8) est prioritaire ; applique les préréglages par classe ci-dessous.",
+        'msa_preset_class_tip': "Choisissez la classe de véhicules dont vous modifiez le préréglage de ciblage auto. Chaque classe peut supposer un équipement ennemi différent.",
+        'msa_preset_edit_tip': "L'équipement ennemi que le ciblage auto suppose quand l'ennemi le plus proche est de cette classe.",
+        'msa_preset_lt_tip': "L'équipement ennemi que le ciblage auto suppose quand l'ennemi le plus proche est un char léger.",
+        'msa_preset_df_tip': "L'équipement ennemi supposé pour toutes les classes hors chars légers.",
+        'msa_circle_tip': "Dessiner le cercle de distance de détection de SpotMeter sur la minicarte (de quelle distance on peut vous voir actuellement). Désactivé = masqué. Note : avec la minicarte XVM, c'est XVM qui contrôle la couleur du cercle.",
+        'msa_alpha_tip': 'Opacité du cercle sur la minicarte, 10-100 %. Plus bas = plus transparent.',
+        'msa_language_tip': "Langue de l'interface du panneau et de ce menu. Auto = suit le client du jeu (PL / FR / ES / DE / CS / IT / PT reconnus, tout le reste en EN).",
+        'msa_hotkey_tip': "Afficher ou masquer le panneau de ciblage en combat. PageDown par défaut - le seul moyen de l'appeler quand le panneau démarre masqué.",
+        'msa_colors_label': 'Couleurs du cercle',
+        'msa_colors_label_tip': "Couleur du cercle de distance de détection sur la minicarte pour chaque état. NOTE : tant que la minicarte XVM est active, XVM repeint le cercle avec sa propre couleur et ces réglages sont ignorés - ils s'appliquent quand vous n'utilisez pas la minicarte XVM.",
+        'msa_col_moving': 'En mouvement',
+        'msa_col_moving_tip': 'Couleur du cercle quand vous roulez (camouflage le plus faible).',
+        'msa_col_still': "À l'arrêt",
+        'msa_col_still_tip': 'Couleur du cercle quand vous êtes immobile (le camouflage augmente).',
+        'msa_col_aftershot': 'Après un tir',
+        'msa_col_aftershot_tip': 'Couleur du cercle pendant ~3 s après un tir (malus de camouflage).',
+        'msa_col_camonet': 'Filet de camo. (3 s arrêt)',
+        'msa_col_camonet_tip': "Couleur du cercle une fois le filet de camouflage actif (3 s à l'arrêt).",
+        'tl_rations': 'rations', 'tl_BIA': 'BIA', 'tl_reconSitAware': 'recon+vig.',
+        'tl_directives': 'directives', 'tl_fieldUpgrades': 'amél.terr.',
+        'tl_optics': 'optique', 'tl_vents': 'ventil.', 'tl_cvs': 'CVS', 'tl_auto': 'auto',
+        'lv_0': 'DÉS.', 'lv_1': 'de base', 'lv_2': 'emplac.', 'lv_3': 'de bons', 'lv_4': 'de luxe',
+        'battle_target': 'Cible :', 'battle_target_hint': '(Pavé num. 2/8 ou clic sur la liste)',
+        'battle_auto_hint': 'clic / Pavé num. /',
+        'battle_hide_hint': 'PgDn pour masquer le panneau',
+        'battle_drag_hint': 'glisser : en-tête', 'battle_collapse_hint': 'flèche : replier',
+        'battle_target_own': 'soi',
+    },
+    'es': {
+        'msa_battle_panel': 'Panel de combate visible al inicio',
+        'msa_autohide': 'Ocultar el panel al mantener TAB / N',
+        'msa_group_tanks': 'Agrupar tanques enemigos idénticos',
+        'msa_circle': 'Círculo de distancia de detección (minimapa)',
+        'msa_alpha': 'Opacidad del círculo',
+        'msa_hotkey': 'Tecla mostrar/ocultar panel (combate)',
+        'msa_language': 'Idioma',
+        'msa_lang_auto': 'Auto (cliente del juego)',
+        'msa_defaults_label': 'Equipamiento supuesto al inicio del combate:',
+        'msa_def_rations': 'Raciones de combate',
+        'msa_def_BIA': 'Hermanos de armas',
+        'msa_def_reconSitAware': 'Reconocimiento + Conciencia situacional',
+        'msa_def_directives': 'Directivas de equipamiento',
+        'msa_def_fieldUpgrades': 'Mejoras de campo (alcance, BETA)',
+        'msa_def_autopick': 'Selección automática del enemigo más cercano',
+        'msa_def_optics': 'Nivel de ópticas',
+        'msa_def_vents': 'Nivel de ventilación',
+        'msa_def_cvs': 'CVS enemigo',
+        'msa_preset_lt': 'Preajuste AUTO - tanques ligeros:',
+        'msa_preset_df': 'Preajuste AUTO - otras clases:',
+        'msa_preset_class': 'Preajuste para la clase',
+        'msa_preset_edit': 'Preajuste de clase:',
+        'msa_cls_lt': 'Tanques ligeros',
+        'msa_cls_mt': 'Tanques medios',
+        'msa_cls_ht': 'Tanques pesados',
+        'msa_cls_td': 'Cazacarros',
+        'msa_cls_spg': 'Artillería (SPG)',
+        'msa_hotkeys_label': 'Teclas:',
+        'msa_hk_next': 'Siguiente enemigo',
+        'msa_hk_prev': 'Enemigo anterior',
+        'msa_hk_clear': 'Borrar selección',
+        'msa_hk_autopick': 'Selección automática sí/no',
+        'msa_hk_optics': 'Ciclar nivel de ópticas',
+        'msa_hk_vents': 'Ciclar nivel de ventilación',
+        'msa_hk_cvs': 'Ciclar CVS enemigo',
+        'msa_hk_dump': 'Volcar datos del enemigo al registro',
+        'msa_hk_snapshot': 'Captura de distancia al registro',
+        'msa_hk_reload': 'Recargar archivo de configuración',
+        # --- descripciones emergentes (v7.1) ---
+        'msa_battle_panel_tip': 'Mostrar el panel de selección automáticamente al empezar el combate. Desactivado = oculto; PageDown lo invoca igualmente en combate.',
+        'msa_group_tanks_tip': 'Agrupar tanques enemigos idénticos en una sola fila y una sola parada de Teclado num. 2/8 (mismo modelo = mismo alcance de visión = mismo círculo). Desactivado = un enemigo por fila.',
+        'msa_autohide_tip': 'Ocultar el panel mientras mantienes una tecla de marcador (TAB / N) para que no tape las estadísticas; vuelve al soltarla.',
+        'msa_defaults_label_tip': 'El servidor oculta las habilidades de tripulación y el equipamiento enemigos, así que SpotMeter supone este equipamiento al dimensionar el círculo. Ajústalo a cómo esperas que vayan equipados los enemigos típicos.',
+        'msa_def_rations_tip': 'Suponer que el enemigo lleva raciones de combate (+4,30 % de alcance de visión). Activado por defecto: la mayoría de jugadores las usa.',
+        'msa_def_BIA_tip': 'Suponer que la tripulación enemiga tiene Hermanos de armas (+2,53 % de alcance de visión). Activado por defecto.',
+        'msa_def_reconSitAware_tip': 'Suponer que el enemigo tiene Reconocimiento + Conciencia situacional (+7,39 % de alcance de visión en conjunto). Activado por defecto.',
+        'msa_def_directives_tip': 'Suponer una directiva de alcance de visión en el equipamiento enemigo (x1,025 sobre el equipo detectado). Desactivado por defecto: menos habitual.',
+        'msa_def_fieldUpgrades_tip': 'Suponer una mejora de campo de alcance de visión (tabla por tanque en spotmeter.json). BETA, desactivado por defecto: el servidor no lo envía, así que es una estimación.',
+        'msa_def_optics_tip': 'Ópticas enemigas supuestas: más ópticas = más alcance de visión enemigo. DESACT. / básicas +10 % / en ranura +11,5 % / de bonos +12,5 % / de lujo +13,5 %.',
+        'msa_def_vents_tip': 'Ventilación enemiga supuesta: amplifica los bonus de tripulación anteriores (raciones / hermanos de armas / reconocimiento). DESACT. / +5 % / +6,25 % / +7,5 % / +8,5 %.',
+        'msa_def_cvs_tip': 'CVS enemigo supuesto (sistema de visión del comandante): reduce TU camuflaje en movimiento, así que te detectan desde más lejos al moverte. DESACT. / básico -10 % / en ranura -12,5 %.',
+        'msa_def_autopick_tip': 'Fijar automáticamente el enemigo más cercano y ajustar el círculo a su alcance de visión, actualizándolo según se mueve. Una selección manual (Teclado num. 2/8) tiene prioridad; aplica los preajustes por clase de abajo.',
+        'msa_preset_class_tip': 'Elige la clase de vehículos cuyo preajuste de selección automática estás editando. Cada clase puede suponer un equipamiento enemigo distinto.',
+        'msa_preset_edit_tip': 'El equipamiento enemigo que supone la selección automática cuando el enemigo más cercano es de esta clase.',
+        'msa_preset_lt_tip': 'El equipamiento enemigo que supone la selección automática cuando el enemigo más cercano es un tanque ligero.',
+        'msa_preset_df_tip': 'El equipamiento enemigo supuesto para todas las clases que no sean ligeros.',
+        'msa_circle_tip': 'Dibujar el círculo de distancia de detección de SpotMeter en el minimapa (desde qué distancia pueden verte ahora). Desactivado = ocultarlo. Nota: con el minimapa de XVM, es XVM quien controla el color del círculo.',
+        'msa_alpha_tip': 'Opacidad del círculo del minimapa, 10-100 %. Más bajo = más transparente.',
+        'msa_language_tip': 'Idioma de la interfaz del panel y de este menú. Auto = sigue al cliente del juego (reconoce PL / FR / ES / DE / CS / IT / PT; el resto en EN).',
+        'msa_hotkey_tip': 'Mostrar u ocultar el panel de selección en combate. PageDown por defecto: la única forma de invocarlo cuando el panel empieza oculto.',
+        'msa_colors_label': 'Colores del círculo',
+        'msa_colors_label_tip': 'Color del círculo de distancia de detección del minimapa en cada estado. NOTA: mientras el minimapa de XVM esté activo, XVM repinta el círculo con su propio color y estos ajustes se ignoran; se aplican cuando no usas el minimapa de XVM.',
+        'msa_col_moving': 'En movimiento',
+        'msa_col_moving_tip': 'Color del círculo mientras te mueves (camuflaje mínimo).',
+        'msa_col_still': 'Detenido',
+        'msa_col_still_tip': 'Color del círculo mientras estás parado (el camuflaje sube).',
+        'msa_col_aftershot': 'Tras disparar',
+        'msa_col_aftershot_tip': 'Color del círculo durante ~3 s tras disparar (penalización de camuflaje).',
+        'msa_col_camonet': 'Red de camu. (3 s parado)',
+        'msa_col_camonet_tip': 'Color del círculo cuando entra en efecto la red de camuflaje (3 s inmóvil).',
+        'tl_rations': 'raciones', 'tl_BIA': 'BIA', 'tl_reconSitAware': 'recon+CS',
+        'tl_directives': 'directivas', 'tl_fieldUpgrades': 'mej.campo',
+        'tl_optics': 'ópticas', 'tl_vents': 'ventil.', 'tl_cvs': 'CVS', 'tl_auto': 'auto',
+        'lv_0': 'DESACT.', 'lv_1': 'básicas', 'lv_2': 'en ranura', 'lv_3': 'de bonos', 'lv_4': 'de lujo',
+        'battle_target': 'Objetivo:', 'battle_target_hint': '(Teclado num. 2/8 o clic en la lista)',
+        'battle_auto_hint': 'clic / Teclado num. /',
+        'battle_hide_hint': 'Pulsa PgDn para ocultar el panel',
+        'battle_drag_hint': 'arrastrar: cabecera', 'battle_collapse_hint': 'flecha: plegar',
+        'battle_target_own': 'propio',
+    },
+    'de': {
+        'msa_battle_panel': 'Gefechtspanel beim Start sichtbar',
+        'msa_autohide': 'Panel ausblenden, solange TAB / N gehalten wird',
+        'msa_group_tanks': 'Identische gegnerische Panzer gruppieren',
+        'msa_circle': 'Aufklärungsradius-Kreis auf der Minikarte',
+        'msa_alpha': 'Deckkraft des Kreises',
+        'msa_hotkey': 'Taste Panel ein-/ausblenden (Gefecht)',
+        'msa_language': 'Sprache',
+        'msa_lang_auto': 'Auto (Spielclient)',
+        'msa_defaults_label': 'Angenommene Ausrüstung bei Gefechtsbeginn:',
+        'msa_def_rations': 'Gefechtsrationen',
+        'msa_def_BIA': 'Waffenbrüder',
+        'msa_def_reconSitAware': 'Aufklärung + Rundumblick',
+        'msa_def_directives': 'Direktiven auf Ausrüstung',
+        'msa_def_fieldUpgrades': 'Feldverbesserungen (Sichtweite, BETA)',
+        'msa_def_autopick': 'Nächsten Gegner automatisch anvisieren',
+        'msa_def_optics': 'Optik-Stufe',
+        'msa_def_vents': 'Belüftungs-Stufe',
+        'msa_def_cvs': 'Gegnerisches CVS',
+        'msa_preset_lt': 'AUTO-Vorgabe - leichte Panzer:',
+        'msa_preset_df': 'AUTO-Vorgabe - andere Klassen:',
+        'msa_preset_class': 'Vorgabe für Klasse',
+        'msa_preset_edit': 'Klassen-Vorgabe:',
+        'msa_cls_lt': 'Leichte Panzer',
+        'msa_cls_mt': 'Mittlere Panzer',
+        'msa_cls_ht': 'Schwere Panzer',
+        'msa_cls_td': 'Jagdpanzer',
+        'msa_cls_spg': 'Artillerie (SPG)',
+        'msa_hotkeys_label': 'Tastenbelegung:',
+        'msa_hk_next': 'Nächster Gegner',
+        'msa_hk_prev': 'Vorheriger Gegner',
+        'msa_hk_clear': 'Auswahl aufheben',
+        'msa_hk_autopick': 'Auto-Anvisieren ein/aus',
+        'msa_hk_optics': 'Optik-Stufe durchschalten',
+        'msa_hk_vents': 'Belüftungs-Stufe durchschalten',
+        'msa_hk_cvs': 'Gegnerisches CVS durchschalten',
+        'msa_hk_dump': 'Gegnerdaten ins Log schreiben',
+        'msa_hk_snapshot': 'Aufklärungsdistanz ins Log schreiben',
+        'msa_hk_reload': 'Konfigurationsdatei neu laden',
+        # --- Tooltips (v7.1) ---
+        'msa_battle_panel_tip': 'Das Auswahlpanel automatisch bei Gefechtsbeginn anzeigen. Aus = ausgeblendet; PageDown holt es im Gefecht trotzdem hervor.',
+        'msa_group_tanks_tip': 'Identische gegnerische Panzer zu einer Zeile und einem Numpad-2/8-Halt zusammenfassen (gleiches Modell = gleiche Sichtweite = gleicher Kreis). Aus = jeder Gegner einzeln.',
+        'msa_autohide_tip': 'Das Panel ausblenden, solange du eine Statistiktaste (TAB / N) hältst, damit es die Teamstatistik nicht verdeckt; beim Loslassen kommt es zurück.',
+        'msa_defaults_label_tip': 'Der Server verbirgt gegnerische Besatzungsfertigkeiten und Ausrüstung, daher nimmt SpotMeter diese Ausrüstung an, um den Kreis zu berechnen. Stelle sie so ein, wie typische Gegner deiner Erwartung nach ausgerüstet sind.',
+        'msa_def_rations_tip': 'Annehmen, dass der Gegner Gefechtsrationen nutzt (+4,30 % Sichtweite). Standardmäßig an - die meisten Spieler nutzen sie.',
+        'msa_def_BIA_tip': 'Annehmen, dass die gegnerische Besatzung Waffenbrüder hat (+2,53 % Sichtweite). Standardmäßig an.',
+        'msa_def_reconSitAware_tip': 'Annehmen, dass der Gegner Aufklärung + Rundumblick hat (+7,39 % Sichtweite zusammen). Standardmäßig an.',
+        'msa_def_directives_tip': 'Eine Sichtweiten-Direktive auf der gegnerischen Ausrüstung annehmen (x1,025 auf erkannter Ausrüstung). Standardmäßig aus - eher selten.',
+        'msa_def_fieldUpgrades_tip': 'Eine Sichtweiten-Feldverbesserung annehmen (Tabelle pro Panzer in spotmeter.json). BETA, standardmäßig aus - der Server sendet das nicht, es ist also eine Schätzung.',
+        'msa_def_optics_tip': 'Angenommene gegnerische Optik - mehr Optik = mehr gegnerische Sichtweite. AUS / einfach +10 % / im Slot +11,5 % / Anleihen +12,5 % / Deluxe +13,5 %.',
+        'msa_def_vents_tip': 'Angenommene gegnerische Belüftung - sie verstärkt die obigen Besatzungsboni (Rationen / Waffenbrüder / Aufklärung). AUS / +5 % / +6,25 % / +7,5 % / +8,5 %.',
+        'msa_def_cvs_tip': 'Angenommenes gegnerisches CVS (Kommandanten-Sichtsystem) - es senkt DEINE Tarnung in Bewegung, du wirst also in Fahrt von weiter weg aufgeklärt. AUS / einfach -10 % / im Slot -12,5 %.',
+        'msa_def_autopick_tip': 'Automatisch den nächsten Gegner anvisieren und den Kreis auf dessen Sichtweite setzen, laufend aktualisiert. Eine manuelle Auswahl (Numpad 2/8) hat Vorrang; nutzt die Klassen-Vorgaben unten.',
+        'msa_preset_class_tip': 'Wähle, für welche Fahrzeugklasse du die Auto-Anvisieren-Vorgabe bearbeitest. Jede Klasse kann eine andere gegnerische Ausrüstung annehmen.',
+        'msa_preset_edit_tip': 'Die gegnerische Ausrüstung, die das Auto-Anvisieren annimmt, wenn der nächste Gegner dieser Klasse angehört.',
+        'msa_preset_lt_tip': 'Die gegnerische Ausrüstung, die das Auto-Anvisieren annimmt, wenn der nächste Gegner ein leichter Panzer ist.',
+        'msa_preset_df_tip': 'Die angenommene gegnerische Ausrüstung für alle Klassen außer leichten Panzern.',
+        'msa_circle_tip': 'SpotMeters Aufklärungsradius-Kreis auf der Minikarte zeichnen (aus welcher Entfernung du aktuell gesehen werden kannst). Aus = ausblenden. Hinweis: Mit der XVM-Minikarte bestimmt XVM die Farbe des Kreises.',
+        'msa_alpha_tip': 'Deckkraft des Kreises auf der Minikarte, 10-100 %. Niedriger = durchsichtiger.',
+        'msa_language_tip': 'Sprache der Paneloberfläche und dieses Menüs. Auto = folgt dem Spielclient (PL / FR / ES / DE / CS / IT / PT werden erkannt, alles andere EN).',
+        'msa_hotkey_tip': 'Das Auswahlpanel im Gefecht ein- oder ausblenden. Standard PageDown - die einzige Möglichkeit, es zu holen, wenn das Panel ausgeblendet startet.',
+        'msa_colors_label': 'Kreisfarben',
+        'msa_colors_label_tip': 'Farbe des Aufklärungsradius-Kreises auf der Minikarte je Zustand. HINWEIS: Solange die XVM-Minikarte aktiv ist, übermalt XVM den Kreis mit seiner eigenen Farbe und diese Einstellungen werden ignoriert - sie greifen, wenn du die XVM-Minikarte nicht verwendest.',
+        'msa_col_moving': 'In Bewegung',
+        'msa_col_moving_tip': 'Kreisfarbe, während du fährst (geringste Tarnung).',
+        'msa_col_still': 'Im Stand',
+        'msa_col_still_tip': 'Kreisfarbe, während du stehst (Tarnung baut sich auf).',
+        'msa_col_aftershot': 'Nach dem Schuss',
+        'msa_col_aftershot_tip': 'Kreisfarbe für ~3 s nach dem Schuss (Tarnungsmalus).',
+        'msa_col_camonet': 'Tarnnetz (3 s Stand)',
+        'msa_col_camonet_tip': 'Kreisfarbe, sobald das Tarnnetz greift (3 s Stillstand).',
+        'tl_rations': 'Rationen', 'tl_BIA': 'BIA', 'tl_reconSitAware': 'Aufkl.+RB',
+        'tl_directives': 'Direktiven', 'tl_fieldUpgrades': 'Feldverb.',
+        'tl_optics': 'Optik', 'tl_vents': 'Belüftung', 'tl_cvs': 'CVS', 'tl_auto': 'auto',
+        'lv_0': 'AUS', 'lv_1': 'einfach', 'lv_2': 'im Slot', 'lv_3': 'Anleihen', 'lv_4': 'Deluxe',
+        'battle_target': 'Ziel:', 'battle_target_hint': '(Numpad 2/8 oder Klick auf die Liste)',
+        'battle_auto_hint': 'Klick / Numpad /',
+        'battle_hide_hint': 'PgDn zum Ausblenden des Panels',
+        'battle_drag_hint': 'ziehen: Kopfzeile', 'battle_collapse_hint': 'Pfeil: einklappen',
+        'battle_target_own': 'eigen',
+    },
+    'cs': {
+        'msa_battle_panel': 'Bojový panel viditelný na začátku',
+        'msa_autohide': 'Skrýt panel při držení TAB / N',
+        'msa_group_tanks': 'Seskupit stejné nepřátelské tanky',
+        'msa_circle': 'Kruh vzdálenosti odhalení na minimapě',
+        'msa_alpha': 'Krytí kruhu',
+        'msa_hotkey': 'Klávesa zobrazit/skrýt panel (bitva)',
+        'msa_language': 'Jazyk',
+        'msa_lang_auto': 'Auto (klient hry)',
+        'msa_defaults_label': 'Předpokládaná výbava na začátku bitvy:',
+        'msa_def_rations': 'Bojové dávky',
+        'msa_def_BIA': 'Bratrstvo ve zbrani',
+        'msa_def_reconSitAware': 'Průzkum + Přehled o situaci',
+        'msa_def_directives': 'Direktivy na vybavení',
+        'msa_def_fieldUpgrades': 'Polní úpravy (výhled, BETA)',
+        'msa_def_autopick': 'Automatický cíl nejbližšího nepřítele',
+        'msa_def_optics': 'Úroveň optiky',
+        'msa_def_vents': 'Úroveň ventilace',
+        'msa_def_cvs': 'Nepřátelský CVS',
+        'msa_preset_lt': 'Předvolba AUTO - lehké tanky:',
+        'msa_preset_df': 'Předvolba AUTO - ostatní třídy:',
+        'msa_preset_class': 'Předvolba pro třídu',
+        'msa_preset_edit': 'Předvolba třídy:',
+        'msa_cls_lt': 'Lehké tanky',
+        'msa_cls_mt': 'Střední tanky',
+        'msa_cls_ht': 'Těžké tanky',
+        'msa_cls_td': 'Stíhače tanků',
+        'msa_cls_spg': 'Dělostřelectvo (SPG)',
+        'msa_hotkeys_label': 'Klávesové zkratky:',
+        'msa_hk_next': 'Další nepřítel',
+        'msa_hk_prev': 'Předchozí nepřítel',
+        'msa_hk_clear': 'Zrušit výběr',
+        'msa_hk_autopick': 'Automatický cíl zap/vyp',
+        'msa_hk_optics': 'Přepnout úroveň optiky',
+        'msa_hk_vents': 'Přepnout úroveň ventilace',
+        'msa_hk_cvs': 'Přepnout nepřátelský CVS',
+        'msa_hk_dump': 'Vypsat data nepřítele do logu',
+        'msa_hk_snapshot': 'Vypsat vzdálenost odhalení do logu',
+        'msa_hk_reload': 'Znovu načíst konfigurační soubor',
+        'msa_battle_panel_tip': 'Zobrazit panel výběru cíle automaticky na začátku bitvy. Vypnuto = skrytý; PageDown ho v bitvě stejně vyvolá.',
+        'msa_group_tanks_tip': 'Sloučí stejné nepřátelské tanky do jednoho řádku a jedné zastávky Numpad 2/8 (stejný model = stejný výhled = stejný kruh). Vypnuto = každý nepřítel zvlášť.',
+        'msa_autohide_tip': 'Skryje panel po dobu držení klávesy tabulky výsledků (TAB / N), aby nepřekrýval statistiky týmu; po uvolnění se vrátí.',
+        'msa_defaults_label_tip': 'Server skrývá dovednosti posádky a vybavení nepřítele, takže SpotMeter při výpočtu kruhu předpokládá tuto výbavu. Nastavte ji podle toho, jak očekáváte, že jsou typičtí nepřátelé vybaveni.',
+        'msa_def_rations_tip': 'Předpokládat, že nepřítel má bojové dávky (+4,30 % výhledu). Výchozí zapnuto - většina hráčů je používá.',
+        'msa_def_BIA_tip': 'Předpokládat, že posádka nepřítele má Bratrstvo ve zbrani (+2,53 % výhledu). Výchozí zapnuto.',
+        'msa_def_reconSitAware_tip': 'Předpokládat, že nepřítel má Průzkum + Přehled o situaci (+7,39 % výhledu dohromady). Výchozí zapnuto.',
+        'msa_def_directives_tip': 'Předpokládat direktivu na výhled na vybavení nepřítele (x1,025 na rozpoznané vybavení). Výchozí vypnuto - méně časté.',
+        'msa_def_fieldUpgrades_tip': 'Předpokládat polní úpravu na výhled (tabulka podle tanku v spotmeter.json). BETA, výchozí vypnuto - server to neposílá, jde tedy o odhad.',
+        'msa_def_optics_tip': 'Předpokládaná optika nepřítele - více optiky = větší výhled nepřítele. VYP / základní +10 % / ve slotu +11,5 % / za dluhopisy +12,5 % / vylepšená +13,5 %.',
+        'msa_def_vents_tip': 'Předpokládaná ventilace nepřítele - zesiluje výše uvedené bonusy posádky (dávky / bratrstvo / průzkum). VYP / +5 % / +6,25 % / +7,5 % / +8,5 %.',
+        'msa_def_cvs_tip': 'Předpokládaný CVS nepřítele (velitelský vizuální systém) - snižuje VAŠE maskování za jízdy, takže vás odhalí z větší vzdálenosti. VYP / základní -10 % / ve slotu -12,5 %.',
+        'msa_def_autopick_tip': 'Automaticky zaměřit nejbližšího nepřítele a přizpůsobit kruh jeho výhledu, průběžně aktualizované. Ruční výběr (Numpad 2/8) má přednost; používá předvolby podle třídy níže.',
+        'msa_preset_class_tip': 'Vyberte třídu vozidel, jejíž předvolbu automatického cílení upravujete. Každá třída může předpokládat jinou výbavu nepřítele.',
+        'msa_preset_edit_tip': 'Výbava nepřítele, kterou automatické cílení předpokládá, když je nejbližší nepřítel této třídy.',
+        'msa_preset_lt_tip': 'Výbava nepřítele, kterou automatické cílení předpokládá, když je nejbližší nepřítel lehký tank.',
+        'msa_preset_df_tip': 'Předpokládaná výbava nepřítele pro všechny třídy kromě lehkých tanků.',
+        'msa_circle_tip': 'Kreslit kruh vzdálenosti odhalení SpotMeteru na minimapě (z jaké vzdálenosti vás lze právě teď vidět). Vypnuto = skrýt. Poznámka: s minimapou XVM určuje barvu kruhu XVM.',
+        'msa_alpha_tip': 'Krytí kruhu na minimapě, 10-100 %. Nižší = průhlednější.',
+        'msa_language_tip': 'Jazyk rozhraní panelu a tohoto menu. Auto = podle klienta hry (rozpozná PL / FR / ES / DE / CS / IT / PT, ostatní -> EN).',
+        'msa_hotkey_tip': 'Zobrazit nebo skrýt panel výběru cíle v bitvě. Výchozí PageDown - jediný způsob, jak ho vyvolat, když panel startuje skrytý.',
+        'msa_colors_label': 'Barvy kruhu',
+        'msa_colors_label_tip': 'Barva kruhu vzdálenosti odhalení na minimapě pro každý stav. POZNÁMKA: dokud je aktivní minimapa XVM, překresluje XVM kruh vlastní barvou a tato nastavení se ignorují - platí, když minimapu XVM nepoužíváte.',
+        'msa_col_moving': 'V pohybu',
+        'msa_col_moving_tip': 'Barva kruhu, když jedete (nejnižší maskování).',
+        'msa_col_still': 'Ve stoje',
+        'msa_col_still_tip': 'Barva kruhu, když stojíte (maskování se zvyšuje).',
+        'msa_col_aftershot': 'Po výstřelu',
+        'msa_col_aftershot_tip': 'Barva kruhu po dobu ~3 s po výstřelu (postih maskování).',
+        'msa_col_camonet': 'Maskovací síť (3 s stání)',
+        'msa_col_camonet_tip': 'Barva kruhu, jakmile začne působit maskovací síť (3 s bez pohybu).',
+        'tl_rations': 'dávky',
+        'tl_BIA': 'BIA',
+        'tl_reconSitAware': 'průzk+přeh',
+        'tl_directives': 'direktivy',
+        'tl_fieldUpgrades': 'polní úpr.',
+        'tl_optics': 'optika',
+        'tl_vents': 'ventilace',
+        'tl_cvs': 'CVS',
+        'tl_auto': 'auto',
+        'lv_0': 'VYP',
+        'lv_1': 'základní',
+        'lv_2': 've slotu',
+        'lv_3': 'dluhopisy',
+        'lv_4': 'vylepšená',
+        'battle_target': 'Cíl:',
+        'battle_target_hint': '(Numpad 2/8 nebo klik na seznam)',
+        'battle_auto_hint': 'klik / Numpad /',
+        'battle_hide_hint': 'PgDn skryje panel',
+        'battle_drag_hint': 'tažení: záhlaví',
+        'battle_collapse_hint': 'šipka: sbalit',
+        'battle_target_own': 'vlastní',
+    },
+    'it': {
+        'msa_battle_panel': "Pannello di battaglia visibile all'avvio",
+        'msa_autohide': 'Nascondi il pannello mentre tieni TAB / N',
+        'msa_group_tanks': 'Raggruppa i carri nemici identici',
+        'msa_circle': 'Cerchio della distanza di avvistamento (minimappa)',
+        'msa_alpha': 'Opacità del cerchio',
+        'msa_hotkey': 'Tasto mostra/nascondi pannello (battaglia)',
+        'msa_language': 'Lingua',
+        'msa_lang_auto': 'Auto (client di gioco)',
+        'msa_defaults_label': 'Equipaggiamento presunto a inizio battaglia:',
+        'msa_def_rations': 'Razioni da combattimento',
+        'msa_def_BIA': "Fratelli d'Armi",
+        'msa_def_reconSitAware': 'Ricognizione + Consapevolezza situazionale',
+        'msa_def_directives': "Direttive sull'equipaggiamento",
+        'msa_def_fieldUpgrades': 'Miglioramenti sul campo (raggio, BETA)',
+        'msa_def_autopick': 'Selezione automatica del nemico più vicino',
+        'msa_def_optics': 'Livello delle ottiche',
+        'msa_def_vents': 'Livello di ventilazione',
+        'msa_def_cvs': 'CVS nemico',
+        'msa_preset_lt': 'Preimpostazione AUTO - carri leggeri:',
+        'msa_preset_df': 'Preimpostazione AUTO - altre classi:',
+        'msa_preset_class': 'Preimpostazione per classe',
+        'msa_preset_edit': 'Preimpostazione di classe:',
+        'msa_cls_lt': 'Carri leggeri',
+        'msa_cls_mt': 'Carri medi',
+        'msa_cls_ht': 'Carri pesanti',
+        'msa_cls_td': 'Cacciacarri',
+        'msa_cls_spg': 'Artiglieria (SPG)',
+        'msa_hotkeys_label': 'Scorciatoie:',
+        'msa_hk_next': 'Nemico successivo',
+        'msa_hk_prev': 'Nemico precedente',
+        'msa_hk_clear': 'Annulla la selezione',
+        'msa_hk_autopick': 'Selezione automatica on/off',
+        'msa_hk_optics': 'Scorri il livello delle ottiche',
+        'msa_hk_vents': 'Scorri il livello di ventilazione',
+        'msa_hk_cvs': 'Scorri il CVS nemico',
+        'msa_hk_dump': 'Scrivi i dati del nemico nel log',
+        'msa_hk_snapshot': 'Scrivi la distanza di avvistamento nel log',
+        'msa_hk_reload': 'Ricarica il file di configurazione',
+        'msa_battle_panel_tip': "Mostra automaticamente il pannello di selezione all'inizio della battaglia. Disattivato = nascosto; PageDown lo richiama comunque in battaglia.",
+        'msa_group_tanks_tip': 'Unisce i carri nemici identici in una sola riga e in una sola fermata di Numpad 2/8 (stesso modello = stesso raggio visivo = stesso cerchio). Disattivato = un nemico per riga.',
+        'msa_autohide_tip': 'Nasconde il pannello mentre tieni premuto un tasto del tabellone (TAB / N) per non coprire le statistiche della squadra; torna al rilascio.',
+        'msa_defaults_label_tip': "Il server nasconde le abilità dell'equipaggio e l'equipaggiamento nemico, quindi SpotMeter presume questo equipaggiamento per dimensionare il cerchio. Impostalo secondo come ti aspetti che siano equipaggiati i nemici tipici.",
+        'msa_def_rations_tip': 'Presumere che il nemico usi razioni da combattimento (+4,30 % di raggio visivo). Attivo per impostazione predefinita - la maggior parte dei giocatori le usa.',
+        'msa_def_BIA_tip': "Presumere che l'equipaggio nemico abbia Fratelli d'Armi (+2,53 % di raggio visivo). Attivo per impostazione predefinita.",
+        'msa_def_reconSitAware_tip': 'Presumere che il nemico abbia Ricognizione + Consapevolezza situazionale (+7,39 % di raggio visivo in totale). Attivo per impostazione predefinita.',
+        'msa_def_directives_tip': "Presumere una direttiva sul raggio visivo nell'equipaggiamento nemico (x1,025 sull'equipaggiamento rilevato). Disattivo per impostazione predefinita - meno comune.",
+        'msa_def_fieldUpgrades_tip': 'Presumere un miglioramento sul campo per il raggio visivo (tabella per carro in spotmeter.json). BETA, disattivo per impostazione predefinita - il server non lo invia, quindi è una stima.',
+        'msa_def_optics_tip': 'Ottiche nemiche presunte - più ottiche = più raggio visivo nemico. DIS. / base +10 % / nello slot +11,5 % / con obbligazioni +12,5 % / di lusso +13,5 %.',
+        'msa_def_vents_tip': "Ventilazione nemica presunta - amplifica i bonus dell'equipaggio qui sopra (razioni / fratelli d'armi / ricognizione). DIS. / +5 % / +6,25 % / +7,5 % / +8,5 %.",
+        'msa_def_cvs_tip': 'CVS nemico presunto (sistema visivo del comandante) - riduce la TUA mimetizzazione in movimento, quindi vieni avvistato da più lontano mentre ti muovi. DIS. / base -10 % / nello slot -12,5 %.',
+        'msa_def_autopick_tip': 'Prendi automaticamente di mira il nemico più vicino e adatta il cerchio al suo raggio visivo, aggiornandolo mentre si sposta. Una selezione manuale (Numpad 2/8) ha la precedenza; applica le preimpostazioni per classe qui sotto.',
+        'msa_preset_class_tip': 'Scegli la classe di veicoli di cui stai modificando la preimpostazione della selezione automatica. Ogni classe può presumere un equipaggiamento nemico diverso.',
+        'msa_preset_edit_tip': "L'equipaggiamento nemico che la selezione automatica presume quando il nemico più vicino è di questa classe.",
+        'msa_preset_lt_tip': "L'equipaggiamento nemico che la selezione automatica presume quando il nemico più vicino è un carro leggero.",
+        'msa_preset_df_tip': "L'equipaggiamento nemico presunto per tutte le classi diverse dai carri leggeri.",
+        'msa_circle_tip': 'Disegna il cerchio della distanza di avvistamento di SpotMeter sulla minimappa (da quale distanza puoi essere visto ora). Disattivato = nascondilo. Nota: con la minimappa di XVM, è XVM a controllare il colore del cerchio.',
+        'msa_alpha_tip': 'Opacità del cerchio sulla minimappa, 10-100 %. Più basso = più trasparente.',
+        'msa_language_tip': "Lingua dell'interfaccia del pannello e di questo menu. Auto = segue il client di gioco (riconosce PL / FR / ES / DE / CS / IT / PT, il resto in EN).",
+        'msa_hotkey_tip': "Mostra o nasconde il pannello di selezione in battaglia. PageDown per impostazione predefinita - l'unico modo di richiamarlo quando il pannello parte nascosto.",
+        'msa_colors_label': 'Colori del cerchio',
+        'msa_colors_label_tip': 'Colore del cerchio della distanza di avvistamento sulla minimappa per ogni stato. NOTA: finché la minimappa di XVM è attiva, XVM ridipinge il cerchio con il proprio colore e queste impostazioni vengono ignorate - valgono quando non usi la minimappa di XVM.',
+        'msa_col_moving': 'In movimento',
+        'msa_col_moving_tip': 'Colore del cerchio mentre ti muovi (mimetizzazione minima).',
+        'msa_col_still': 'Da fermo',
+        'msa_col_still_tip': 'Colore del cerchio mentre sei fermo (la mimetizzazione aumenta).',
+        'msa_col_aftershot': 'Dopo lo sparo',
+        'msa_col_aftershot_tip': 'Colore del cerchio per ~3 s dopo lo sparo (penalità di mimetizzazione).',
+        'msa_col_camonet': 'Rete mimetica (3 s fermo)',
+        'msa_col_camonet_tip': 'Colore del cerchio quando entra in azione la rete mimetica (3 s da fermo).',
+        'tl_rations': 'razioni',
+        'tl_BIA': 'BIA',
+        'tl_reconSitAware': 'ricog+cons',
+        'tl_directives': 'direttive',
+        'tl_fieldUpgrades': 'migl.campo',
+        'tl_optics': 'ottiche',
+        'tl_vents': 'ventil.',
+        'tl_cvs': 'CVS',
+        'tl_auto': 'auto',
+        'lv_0': 'DIS.',
+        'lv_1': 'base',
+        'lv_2': 'nello slot',
+        'lv_3': 'obbligaz.',
+        'lv_4': 'di lusso',
+        'battle_target': 'Bersaglio:',
+        'battle_target_hint': '(Numpad 2/8 o clic sulla lista)',
+        'battle_auto_hint': 'clic / Numpad /',
+        'battle_hide_hint': 'Premi PgDn per nascondere il pannello',
+        'battle_drag_hint': 'trascina: intestazione',
+        'battle_collapse_hint': 'freccia: comprimi',
+        'battle_target_own': 'proprio',
+    },
+    'pt': {
+        'msa_battle_panel': 'Painel de batalha visível no início',
+        'msa_autohide': 'Ocultar o painel ao manter TAB / N',
+        'msa_group_tanks': 'Agrupar tanques inimigos idênticos',
+        'msa_circle': 'Círculo da distância de deteção (minimapa)',
+        'msa_alpha': 'Opacidade do círculo',
+        'msa_hotkey': 'Tecla mostrar/ocultar painel (batalha)',
+        'msa_language': 'Idioma',
+        'msa_lang_auto': 'Auto (cliente do jogo)',
+        'msa_defaults_label': 'Equipamento presumido no início da batalha:',
+        'msa_def_rations': 'Rações de combate',
+        'msa_def_BIA': 'Irmãos de Armas',
+        'msa_def_reconSitAware': 'Reconhecimento + Consciência situacional',
+        'msa_def_directives': 'Diretivas de equipamento',
+        'msa_def_fieldUpgrades': 'Melhorias de campo (alcance, BETA)',
+        'msa_def_autopick': 'Seleção automática do inimigo mais próximo',
+        'msa_def_optics': 'Nível das ópticas',
+        'msa_def_vents': 'Nível de ventilação',
+        'msa_def_cvs': 'CVS inimigo',
+        'msa_preset_lt': 'Predefinição AUTO - tanques ligeiros:',
+        'msa_preset_df': 'Predefinição AUTO - outras classes:',
+        'msa_preset_class': 'Predefinição para a classe',
+        'msa_preset_edit': 'Predefinição de classe:',
+        'msa_cls_lt': 'Tanques ligeiros',
+        'msa_cls_mt': 'Tanques médios',
+        'msa_cls_ht': 'Tanques pesados',
+        'msa_cls_td': 'Caça-tanques',
+        'msa_cls_spg': 'Artilharia (SPG)',
+        'msa_hotkeys_label': 'Teclas:',
+        'msa_hk_next': 'Inimigo seguinte',
+        'msa_hk_prev': 'Inimigo anterior',
+        'msa_hk_clear': 'Limpar a seleção',
+        'msa_hk_autopick': 'Seleção automática ligar/desligar',
+        'msa_hk_optics': 'Percorrer o nível das ópticas',
+        'msa_hk_vents': 'Percorrer o nível de ventilação',
+        'msa_hk_cvs': 'Percorrer o CVS inimigo',
+        'msa_hk_dump': 'Escrever os dados do inimigo no registo',
+        'msa_hk_snapshot': 'Escrever a distância de deteção no registo',
+        'msa_hk_reload': 'Recarregar o ficheiro de configuração',
+        'msa_battle_panel_tip': 'Mostrar o painel de seleção automaticamente no início da batalha. Desativado = oculto; PageDown invoca-o na mesma durante a batalha.',
+        'msa_group_tanks_tip': 'Junta tanques inimigos idênticos numa só linha e numa só paragem de Numpad 2/8 (mesmo modelo = mesmo alcance de visão = mesmo círculo). Desativado = um inimigo por linha.',
+        'msa_autohide_tip': 'Oculta o painel enquanto mantiveres uma tecla da tabela de pontuação (TAB / N) para não tapar as estatísticas da equipa; volta ao soltar.',
+        'msa_defaults_label_tip': 'O servidor esconde as perícias da tripulação e o equipamento inimigo, por isso o SpotMeter presume este equipamento ao dimensionar o círculo. Ajusta-o à forma como esperas que os inimigos típicos estejam equipados.',
+        'msa_def_rations_tip': 'Presumir que o inimigo usa rações de combate (+4,30 % de alcance de visão). Ativado por predefinição - a maioria dos jogadores usa-as.',
+        'msa_def_BIA_tip': 'Presumir que a tripulação inimiga tem Irmãos de Armas (+2,53 % de alcance de visão). Ativado por predefinição.',
+        'msa_def_reconSitAware_tip': 'Presumir que o inimigo tem Reconhecimento + Consciência situacional (+7,39 % de alcance de visão no total). Ativado por predefinição.',
+        'msa_def_directives_tip': 'Presumir uma diretiva de alcance de visão no equipamento inimigo (x1,025 sobre o equipamento detetado). Desativado por predefinição - menos comum.',
+        'msa_def_fieldUpgrades_tip': 'Presumir uma melhoria de campo de alcance de visão (tabela por tanque em spotmeter.json). BETA, desativado por predefinição - o servidor não o envia, por isso é uma estimativa.',
+        'msa_def_optics_tip': 'Ópticas inimigas presumidas - mais ópticas = mais alcance de visão inimigo. DESAT. / básicas +10 % / na ranhura +11,5 % / de obrigações +12,5 % / de luxo +13,5 %.',
+        'msa_def_vents_tip': 'Ventilação inimiga presumida - amplifica os bónus de tripulação acima (rações / irmãos de armas / reconhecimento). DESAT. / +5 % / +6,25 % / +7,5 % / +8,5 %.',
+        'msa_def_cvs_tip': 'CVS inimigo presumido (sistema de visão do comandante) - reduz a TUA camuflagem em movimento, por isso és detetado de mais longe ao mover-te. DESAT. / básico -10 % / na ranhura -12,5 %.',
+        'msa_def_autopick_tip': 'Fixar automaticamente o inimigo mais próximo e ajustar o círculo ao alcance de visão dele, atualizando à medida que se move. Uma seleção manual (Numpad 2/8) tem prioridade; aplica as predefinições por classe abaixo.',
+        'msa_preset_class_tip': 'Escolhe a classe de veículos cuja predefinição de seleção automática estás a editar. Cada classe pode presumir um equipamento inimigo diferente.',
+        'msa_preset_edit_tip': 'O equipamento inimigo que a seleção automática presume quando o inimigo mais próximo é desta classe.',
+        'msa_preset_lt_tip': 'O equipamento inimigo que a seleção automática presume quando o inimigo mais próximo é um tanque ligeiro.',
+        'msa_preset_df_tip': 'O equipamento inimigo presumido para todas as classes que não sejam ligeiros.',
+        'msa_circle_tip': 'Desenhar o círculo da distância de deteção do SpotMeter no minimapa (a partir de que distância podes ser visto agora). Desativado = ocultá-lo. Nota: com o minimapa do XVM, é o XVM que controla a cor do círculo.',
+        'msa_alpha_tip': 'Opacidade do círculo do minimapa, 10-100 %. Mais baixo = mais transparente.',
+        'msa_language_tip': 'Idioma da interface do painel e deste menu. Auto = segue o cliente do jogo (reconhece PL / FR / ES / DE / CS / IT / PT; o resto em EN).',
+        'msa_hotkey_tip': 'Mostrar ou ocultar o painel de seleção na batalha. PageDown por predefinição - a única forma de o invocar quando o painel começa oculto.',
+        'msa_colors_label': 'Cores do círculo',
+        'msa_colors_label_tip': 'Cor do círculo da distância de deteção no minimapa em cada estado. NOTA: enquanto o minimapa do XVM estiver ativo, o XVM repinta o círculo com a sua própria cor e estas definições são ignoradas - aplicam-se quando não usas o minimapa do XVM.',
+        'msa_col_moving': 'Em movimento',
+        'msa_col_moving_tip': 'Cor do círculo enquanto te moves (camuflagem mínima).',
+        'msa_col_still': 'Parado',
+        'msa_col_still_tip': 'Cor do círculo enquanto estás parado (a camuflagem aumenta).',
+        'msa_col_aftershot': 'Após disparar',
+        'msa_col_aftershot_tip': 'Cor do círculo durante ~3 s após disparar (penalização de camuflagem).',
+        'msa_col_camonet': 'Rede de camufl. (3 s parado)',
+        'msa_col_camonet_tip': 'Cor do círculo quando a rede de camuflagem entra em efeito (3 s imóvel).',
+        'tl_rations': 'rações',
+        'tl_BIA': 'BIA',
+        'tl_reconSitAware': 'recon+CS',
+        'tl_directives': 'diretivas',
+        'tl_fieldUpgrades': 'melh.campo',
+        'tl_optics': 'ópticas',
+        'tl_vents': 'ventil.',
+        'tl_cvs': 'CVS',
+        'tl_auto': 'auto',
+        'lv_0': 'DESAT.',
+        'lv_1': 'básicas',
+        'lv_2': 'na ranhura',
+        'lv_3': 'obrigações',
+        'lv_4': 'de luxo',
+        'battle_target': 'Alvo:',
+        'battle_target_hint': '(Numpad 2/8 ou clique na lista)',
+        'battle_auto_hint': 'clique / Numpad /',
+        'battle_hide_hint': 'Prime PgDn para ocultar o painel',
+        'battle_drag_hint': 'arrastar: cabeçalho',
+        'battle_collapse_hint': 'seta: recolher',
+        'battle_target_own': 'próprio',
     },
 }
 
@@ -279,8 +845,8 @@ _CONFIG_CANDIDATES = tuple(
 DEFAULT_CONFIG = {
     'enabled': True,
     'useOwnViewRange': True,
-    # UI language: 'auto' reads the WoT client language (pl -> Polish, any
-    # other -> English); force with 'pl' or 'en'.
+    # UI language: 'auto' reads the WoT client language (every code in _LANGS
+    # is recognised; anything else -> English); force with one of those codes.
     'language': 'auto',
     'enemyViewRangeFallback': 445.0,
     'crewCamoBonus': 1.05,
@@ -381,14 +947,14 @@ DEFAULT_CONFIG = {
     'pickerIncludeDeadEnemies': False,
     'pickerDiagDumpKey': 'KEY_NUMPADSTAR',
     # v6.1.0: the mod NEVER writes to chat. On-demand diagnostics go to
-    # python.log instead: NumpadEnter (overlayPrintNowKey) logs a one-shot
+    # game.log instead: NumpadEnter (overlayPrintNowKey) logs a one-shot
     # status block (spot distance for all 4 states + picker/toggle/own-tank
     # context); NumpadStar (pickerDiagDumpKey) logs the enemy descriptor + VR
     # breakdown. overlayEnabled gates this on-demand logging. There is no
     # live/auto-refresh mode and no chat confirmations - the battle panel and
     # the minimap circle are the only in-game UI.
     'overlayEnabled': True,
-    'overlayPrintNowKey': 'KEY_NUMPADENTER',  # one-shot status block -> python.log
+    'overlayPrintNowKey': 'KEY_NUMPADENTER',  # one-shot status block -> game.log
     # v6.0 auto-pick: continuously track the closest visible enemy as VR
     # target. Default OFF. Manual pick (Numpad 2/8) always overrides auto;
     # clearing manual (Numpad 5) restores auto when enabled. Position cache
@@ -774,12 +1340,20 @@ _MSA_LINKAGE = 'spotmeter'
 # INCREASES - an unbumped change silently keeps the old menu (e.g. the
 # 'default' class stayed in the dropdown after its removal). User values
 # survive a bump: the new template is seeded from _CFG.
-_MSA_SETTINGS_VERSION = 9   # v7.2: circle-colour pickers added to the menu
+_MSA_SETTINGS_VERSION = 11  # v7.3: FR/ES/DE + CS/IT/PT in the language dropdown
 _MSA_API = None
 _MSA_TEMPLATES = None
 _MSA_REGISTERED = False
 
-_MSA_LANG_VALUES = ('auto', 'en', 'pl')  # dropdown index -> config value
+# dropdown index -> config value. Derived from _LANGS so the two can't drift;
+# 'auto' stays index 0 and en/pl keep 1/2, so configs written by <=7.2.1 still
+# map to the same entries after FR/ES/DE were appended.
+_MSA_LANG_VALUES = ('auto',) + _LANGS
+# Endonyms, so a French/Spanish/German player recognises their entry whatever
+# language the menu is currently rendered in. Parallel to _LANGS (preflight
+# asserts the lengths match).
+_MSA_LANG_NAMES = ('English', 'Polski', 'Français', 'Español', 'Deutsch',
+                   'Čeština', 'Italiano', 'Português')
 
 
 def _msa_import():
@@ -943,6 +1517,9 @@ _MSA_PRESET_CLASSES = (
 )
 _MSA_FORK_LIVE = False      # set at registration: reloadModTemplate + live events available
 _MSA_PRESET_SEL = 0         # which _MSA_PRESET_CLASSES entry the editor shows
+# The last COMMITTED class. _MSA_PRESET_SEL tracks what the OPEN window shows,
+# which Cancel throws away - see _msa_on_window_closed.
+_MSA_PRESET_SEL_APPLIED = 0
 _MSA_PRESET_PENDING = {}    # {classKey: {presetKey: value}} - uncommitted per-class edits
 _MSA_LIVE_PENDING = {}      # {varName: value} - other uncommitted edits (survive re-render)
 
@@ -1087,7 +1664,7 @@ def _msa_build_template():
                                                tooltip=_msa_tip(lk)))
     column2 += [
         t.createDropdown(_t('msa_language'), 'languageIdx',
-                         [_t('msa_lang_auto'), 'English', 'Polski'],
+                         [_t('msa_lang_auto')] + list(_MSA_LANG_NAMES),
                          lang_val, tooltip=_msa_tip('msa_language'), width=200),
         t.createEmpty(),
         t.createLabel(_t('msa_hotkeys_label')),
@@ -1121,6 +1698,7 @@ def _msa_apply(s, live=True):
     live=False at init time - the GUI doesn't exist yet; the normal
     space-entered path will show panels per the (already updated) flags."""
     global _DEFAULT_AUTO_PICK_ENABLED, _LANG, _MSA_PRESET_SEL
+    global _MSA_PRESET_SEL_APPLIED
     lang_changed = False
     if 'languageIdx' in s:
         try:
@@ -1239,6 +1817,7 @@ def _msa_apply(s, live=True):
             sel = _MSA_PRESET_SEL
         if 0 <= sel < len(_MSA_PRESET_CLASSES):
             _MSA_PRESET_SEL = sel
+            _MSA_PRESET_SEL_APPLIED = sel
     # Classes edited earlier in this window session, then the visible class's
     # ap_* values last (they are the freshest state of that class).
     for cls_key, pend in list(_MSA_PRESET_PENDING.items()):
@@ -1281,6 +1860,13 @@ def _msa_apply_live(lang_changed=False):
     global _LANG, _PANEL_USER_HIDDEN
     if lang_changed:
         _LANG = None  # _t() re-detects on next use
+        # Keep a still-open settings window in step with what was just
+        # Applied. Deferred + a no-op when the window is closed or the menu
+        # has no reload API, so this is safe on every build.
+        try:
+            BigWorld.callback(0.0, _msa_reload_template)
+        except Exception:
+            _logger.exception('SpotMeter: post-apply template reload failed')
     try:
         if _REBIND_HOTKEYS is not None:
             _REBIND_HOTKEYS()
@@ -1337,6 +1923,7 @@ def _msa_on_live_change(linkage, changed):
             if var == 'preset_class' or var.startswith('ap_'):
                 continue
             _MSA_LIVE_PENDING[var] = val
+        need_reload = False
         if 'preset_class' in changed:
             try:
                 new_sel = int(changed['preset_class'])
@@ -1344,25 +1931,84 @@ def _msa_on_live_change(linkage, changed):
                 new_sel = _MSA_PRESET_SEL
             if new_sel != _MSA_PRESET_SEL and 0 <= new_sel < len(_MSA_PRESET_CLASSES):
                 _MSA_PRESET_SEL = new_sel
-                # Deferred: reloading from inside the change event would tear
-                # down the very component whose event is still on the stack.
-                BigWorld.callback(0.0, _msa_reload_template)
+                need_reload = True
+        # v7.3: the menu's own labels come from the template we handed MSA at
+        # registration, so a language change is invisible until the subtree is
+        # re-rendered. Do it the moment the dropdown moves - waiting for Apply
+        # (or worse, a client restart) is what made the language look stuck.
+        if 'languageIdx' in changed:
+            need_reload = True
+        if need_reload:
+            # Deferred: reloading from inside the change event would tear
+            # down the very component whose event is still on the stack.
+            BigWorld.callback(0.0, _msa_reload_template)
     except Exception:
         _logger.exception('SpotMeter: live settings change failed')
 
 
-def _msa_reload_template():
+def _msa_pending_lang():
+    """Language the settings menu should be DRAWN in: the language dropdown's
+    uncommitted value when the user has just moved it, else None (= use the
+    committed one). Preview only - Cancel discards _MSA_LIVE_PENDING."""
+    idx = _MSA_LIVE_PENDING.get('languageIdx')
+    if idx is None:
+        return None
     try:
-        if _MSA_API is not None and hasattr(_MSA_API, 'reloadModTemplate'):
-            _MSA_API.reloadModTemplate(_MSA_LINKAGE, _msa_build_template())
+        code = _MSA_LANG_VALUES[int(idx)]
+    except (ValueError, IndexError, TypeError):
+        return None
+    return _client_lang() if code == 'auto' else code
+
+
+def _msa_reload_template():
+    """Re-render our subtree in the open settings window (fork API only),
+    drawn in the PENDING language. Purely visual: Apply still commits through
+    _msa_on_settings_changed, Cancel still discards. No-op if the window is
+    closed or the menu is a plain izeberg build without reloadModTemplate."""
+    global _LANG_OVERRIDE
+    if _MSA_API is None or not hasattr(_MSA_API, 'reloadModTemplate'):
+        return
+    try:
+        try:
+            _LANG_OVERRIDE = _msa_pending_lang()
+            tpl = _msa_build_template()
+        finally:
+            _LANG_OVERRIDE = None   # never leaks into the panel / logs
+        _MSA_API.reloadModTemplate(_MSA_LINKAGE, tpl)
     except Exception:
         _logger.exception('SpotMeter: template reload failed')
 
 
 def _msa_on_window_closed(*args, **kwargs):
     # Cancel/close discards uncommitted edits - drop our mirrors of them.
+    global _MSA_PRESET_SEL
     _MSA_PRESET_PENDING.clear()
     _MSA_LIVE_PENDING.clear()
+    # MSA discards the uncommitted preset_class too, so the dropdown comes back
+    # on the COMMITTED class next time. Without resetting here we kept pointing
+    # at the class the user was merely previewing, and _msa_on_live_change then
+    # filed the next window's ap_* edits under that stale class as well as the
+    # visible one - silently writing a preset the user never edited.
+    _MSA_PRESET_SEL = _MSA_PRESET_SEL_APPLIED
+
+
+def _msa_on_window_opened(*args, **kwargs):
+    """Re-render our subtree whenever the settings window opens.
+
+    MSA builds the window from the template it STORED at setModTemplate time,
+    overwriting only component *values* from saved settings - every label,
+    tooltip and dropdown option comes from that stored copy. reloadModTemplate
+    repaints the open window but deliberately does NOT update the stored one,
+    and setModTemplate refuses to replace it unless settingsVersion increases
+    (its same-version label-refresh path is defeated by our translated dropdown
+    OPTION labels, which count as a structure change). So without this hook an
+    applied language change looked correct until the window was closed, then
+    reverted to whatever language the client started in - and stayed there.
+    """
+    try:
+        BigWorld.callback(0.0, _msa_reload_template)
+    except Exception:
+        _logger.exception('SpotMeter: window-open template reload failed')
 
 
 def _msa_register():
@@ -1382,17 +2028,29 @@ def _msa_register():
                       and hasattr(_MSA_API, 'registerLiveSettingsChange'))
     if _MSA_FORK_LIVE:
         try:
+            # We only want the keys that actually moved. Newer forks spell
+            # that fullsettings=False; mode='changedOnly' is the same thing but
+            # is deprecated and logs a warning. Try newest first, then degrade.
             try:
                 _MSA_API.registerLiveSettingsChange(
-                    _MSA_LINKAGE, _msa_on_live_change, mode='changedOnly')
+                    _MSA_LINKAGE, _msa_on_live_change, fullsettings=False)
             except TypeError:
-                # Older fork build without the mode parameter.
-                _MSA_API.registerLiveSettingsChange(_MSA_LINKAGE, _msa_on_live_change)
+                try:
+                    _MSA_API.registerLiveSettingsChange(
+                        _MSA_LINKAGE, _msa_on_live_change, mode='changedOnly')
+                except TypeError:
+                    # Oldest fork build: full dict, no selector parameter.
+                    _MSA_API.registerLiveSettingsChange(_MSA_LINKAGE,
+                                                        _msa_on_live_change)
         except Exception:
             _logger.exception('SpotMeter: live-change subscription failed')
             _MSA_FORK_LIVE = False
         try:
             _MSA_API.onWindowClosed += _msa_on_window_closed
+        except Exception:
+            pass
+        try:
+            _MSA_API.onWindowOpened += _msa_on_window_opened
         except Exception:
             pass
     _msa_patch_hotkey_names()
@@ -2463,7 +3121,7 @@ def _active_perk_tags():
 
 
 def _dump_picker_descriptor(plugin):
-    """Diagnostic dump for the currently-picked enemy. Logs to python.log:
+    """Diagnostic dump for the currently-picked enemy. Logs to game.log:
       - The raw descriptor values the game transmitted to us (turret VR,
         miscAttrs factors, optionalDevices, enhancements).
       - A step-by-step breakdown of how OUR picker model uses those
@@ -2786,11 +3444,11 @@ def _cycle_level(name):
 
 
 def _print_now():
-    """One-shot snapshot of the status block to python.log (NumpadEnter hotkey).
+    """One-shot snapshot of the status block to game.log (NumpadEnter hotkey).
 
     The block shows spot distance for all four states (ruch / postoj /
     siatka 3s / po strzale) plus picker / toggle / own-tank context. It goes
-    to python.log - the mod never writes to chat. See _format_status_block.
+    to game.log - the mod never writes to chat. See _format_status_block.
     """
     plugin = _get_picker_plugin()
     if plugin is None:
@@ -2906,10 +3564,10 @@ def _format_status_block(plugin):
 
 
 def _post_status_block(plugin):
-    """Log a one-shot status block to python.log (NumpadEnter snapshot).
+    """Log a one-shot status block to game.log (NumpadEnter snapshot).
 
     v6.1.0: the mod never writes to chat. The block - spot distance for all
-    four states plus picker/toggle/own-tank context - goes to python.log so it
+    four states plus picker/toggle/own-tank context - goes to game.log so it
     can be read back offline. The battle panel shows the same picker/toggle
     state graphically in-game.
     """
@@ -3349,6 +4007,12 @@ def _gf_build_state(plugin):
         'auto': {'on': auto_on, 'text': ('ON, %dm' % range_m) if auto_on else 'OFF'},
         'cells': cells,
         'enemies': enemies,
+        # v7.3: the footer used to be a hardcoded Polish literal in the HTML,
+        # so every non-Polish player read Polish there. Composed here instead,
+        # from the same _STRINGS the rest of the panel uses.
+        'hint': '%s  |  %s  |  %s' % (_t('battle_hide_hint'),
+                                      _t('battle_drag_hint'),
+                                      _t('battle_collapse_hint')),
     }
 
 

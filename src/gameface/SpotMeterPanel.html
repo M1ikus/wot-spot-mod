@@ -81,7 +81,7 @@
     <div id="auto">[Auto-pick: OFF]</div>
     <div id="cells"></div>
     <div id="rows"></div>
-    <div id="hint">PageDown - ukryj  |  chwyt: naglowek  |  strzalka: zwin</div>
+    <div id="hint"></div>
   </div>
   <script>
     (function () {
@@ -112,6 +112,7 @@
         }
 
         document.getElementById('target').innerHTML = s.target || '<span class="ctx">--</span>';
+        document.getElementById('hint').textContent = s.hint || '';
 
         var auto = s.auto || { on: false, text: 'OFF' };
         var ae = document.getElementById('auto');
